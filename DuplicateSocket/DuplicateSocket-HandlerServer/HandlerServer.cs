@@ -1,8 +1,11 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
+using System.Threading;
 
 namespace DuplicateSocket_HandlerServer
 {
@@ -12,46 +15,36 @@ namespace DuplicateSocket_HandlerServer
         private StringBuilder _bld = new StringBuilder();
 
         private const int ServerPort = 11000;
+        
+        private static readonly string LocalAppDataFolder =
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        private static readonly string SocketInfoFile = Path.Combine(LocalAppDataFolder, "_SocketInfo.json");
+
+        private static readonly BinaryFormatter BinaryFormatter = new BinaryFormatter();
+        
+        private static SocketInformation DeserializeSocketInformation()
+        {
+            using FileStream fs = File.OpenRead(SocketInfoFile);
+            SocketInformation socketInfo = (SocketInformation) BinaryFormatter.Deserialize(fs);
+            File.Delete(SocketInfoFile);
+            return socketInfo;
+        }
 
         public void Run()
         {
-            Console.WriteLine("********* SERVER *********");
-
-            IPHostEntry ipHostInfo = Dns.GetHostEntry("localhost");
-            IPAddress ipAddress = ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork);
-            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, ServerPort);
-
-            using Socket listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            listener.Bind(localEndPoint);
-            listener.Listen(10);
+            Console.WriteLine("********* HANDLER *********");
+            if (File.Exists(SocketInfoFile)) File.Delete(SocketInfoFile);
 
             while (true)
             {
-                Console.WriteLine("Waiting for conn ..");
-                Socket handler = listener.Accept();
-                Console.WriteLine($"ESTABLISHED: {handler.RemoteEndPoint} <------ {handler.LocalEndPoint}");
-
-                _bld.Clear();
-                while (true)
+                if (File.Exists(SocketInfoFile))
                 {
-                    int count = handler.Receive(_buffer);
-                    string part = Encoding.ASCII.GetString(_buffer, 0, count);
-                    _bld.Append(part);
-                    if (part.EndsWith("."))
-                    {
-                        string recMsg = _bld.ToString().Substring(0, _bld.Length - 1);
-                        Console.WriteLine("RECEIVED:" + recMsg);
-
-                        if (recMsg.ToLower() == "exit") break;
-
-                        byte[] echo = Encoding.ASCII.GetBytes(recMsg + "!!!");
-                        handler.Send(echo);
-                        _bld.Clear();
-                    }
+                    SocketInformation socketInfo = DeserializeSocketInformation();
+                    Console.WriteLine($"Found Socket info: {socketInfo.Options}");
                 }
                 
-                handler.Shutdown(SocketShutdown.Both);
-                handler.Close();
+                Thread.Sleep(100);
             }
         }
 

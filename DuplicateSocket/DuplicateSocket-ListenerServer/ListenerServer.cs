@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
 namespace DuplicateSocket_ListenerServer
@@ -14,13 +16,32 @@ namespace DuplicateSocket_ListenerServer
 
         private const int ServerPort = 11000;
 
-        private const string HalderProcessName = "DuplicateSocket_HandlerServer";
+        private const string HalderProcessName = "DuplicateSocket-HandlerServer";
 
         private static int GetHandlerProcessId() => Process.GetProcessesByName(HalderProcessName).Single().Id;
 
+        private static readonly string LocalAppDataFolder =
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        private static readonly string SocketInfoFile = Path.Combine(LocalAppDataFolder, "_SocketInfo.json");
+        
+        private static readonly BinaryFormatter BinaryFormatter = new BinaryFormatter();
+
+        private static void SerializeSocketInfo(SocketInformation socketInfo)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                BinaryFormatter.Serialize(ms, socketInfo);
+                byte[] stuff = ms.ToArray();
+                File.WriteAllBytes(SocketInfoFile, stuff);
+                
+                Console.WriteLine($"Saved SocketInformation to: {SocketInfoFile}");
+            }
+        }
+        
         public void Run()
         {
-            Console.WriteLine("********* SERVER *********");
+            Console.WriteLine("********* LISTENER *********");
 
             IPHostEntry ipHostInfo = Dns.GetHostEntry("localhost");
             IPAddress ipAddress = ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork);
@@ -34,33 +55,13 @@ namespace DuplicateSocket_ListenerServer
             {
                 Console.WriteLine("Waiting for conn ..");
                 Socket handler = listener.Accept();
+                Console.WriteLine($"ESTABLISHED: {handler.RemoteEndPoint} <------ {handler.LocalEndPoint}");
                 int handlerId = GetHandlerProcessId();
                 SocketInformation socketInfo = handler.DuplicateAndClose(handlerId);
                 
+                SerializeSocketInfo(socketInfo);
 
-                Console.WriteLine($"ESTABLISHED: {handler.RemoteEndPoint} <------ {handler.LocalEndPoint}");
-
-                _bld.Clear();
-                while (true)
-                {
-                    int count = handler.Receive(_buffer);
-                    string part = Encoding.ASCII.GetString(_buffer, 0, count);
-                    _bld.Append(part);
-                    if (part.EndsWith("."))
-                    {
-                        string recMsg = _bld.ToString().Substring(0, _bld.Length - 1);
-                        Console.WriteLine("RECEIVED:" + recMsg);
-
-                        if (recMsg.ToLower() == "exit") break;
-
-                        byte[] echo = Encoding.ASCII.GetBytes(recMsg + "!!!");
-                        handler.Send(echo);
-                        _bld.Clear();
-                    }
-                }
-                
-                handler.Shutdown(SocketShutdown.Both);
-                handler.Close();
+                break;
             }
         }
 
