@@ -362,3 +362,7 @@ MigrationBackup/
 **/.idea/**/*.iml
 **/.idea/**/contentModel.xml
 **/.idea/**/modules.xml
+/.idea/.idea.SOX/.idea/encodings.xml
+/.idea/.idea.SOX/.idea/indexLayout.xml
+/.idea/.idea.SOX/.idea/projectSettingsUpdater.xml
+/.idea/.idea.SOX/.idea/vcs.xml
