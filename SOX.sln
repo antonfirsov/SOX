@@ -1,12 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DuplicateSocketMagic", "DuplicateSocketMagic", "{437FBA88-D655-4112-B304-ADB93BA7BA62}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DuplicateSocket", "DuplicateSocket", "{437FBA88-D655-4112-B304-ADB93BA7BA62}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BasicTCP", "BasicTCP", "{8779B6D6-49BA-42BF-8C4E-3FE87AEB2BD9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BasicTcpServer-dotnet", "BasicTCP\BasicTcpServer-dotnet\BasicTcpServer-dotnet.csproj", "{AAA485BB-C0A5-444E-AC77-2113BD232916}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BasicTcpClient-dotnet", "BasicTCP\BasicTcpClient-dotnet\BasicTcpClient-dotnet.csproj", "{FBCA8DB5-5162-4851-8AF8-A4ECFAF43F16}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DuplicateSocket-ListenerServer", "DuplicateSocket\DuplicateSocket-ListenerServer\DuplicateSocket-ListenerServer.csproj", "{70046DD1-A276-4920-8DCF-45AC8BFD4446}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DuplicateSocket-HandlerServer", "DuplicateSocket\DuplicateSocket-HandlerServer\DuplicateSocket-HandlerServer.csproj", "{060BBE8F-9ABF-4682-B473-60620911E11E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,6 +20,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{AAA485BB-C0A5-444E-AC77-2113BD232916} = {8779B6D6-49BA-42BF-8C4E-3FE87AEB2BD9}
 		{FBCA8DB5-5162-4851-8AF8-A4ECFAF43F16} = {8779B6D6-49BA-42BF-8C4E-3FE87AEB2BD9}
+		{70046DD1-A276-4920-8DCF-45AC8BFD4446} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
+		{060BBE8F-9ABF-4682-B473-60620911E11E} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{AAA485BB-C0A5-444E-AC77-2113BD232916}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -26,5 +32,13 @@ Global
 		{FBCA8DB5-5162-4851-8AF8-A4ECFAF43F16}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FBCA8DB5-5162-4851-8AF8-A4ECFAF43F16}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FBCA8DB5-5162-4851-8AF8-A4ECFAF43F16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70046DD1-A276-4920-8DCF-45AC8BFD4446}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70046DD1-A276-4920-8DCF-45AC8BFD4446}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70046DD1-A276-4920-8DCF-45AC8BFD4446}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70046DD1-A276-4920-8DCF-45AC8BFD4446}.Release|Any CPU.Build.0 = Release|Any CPU
+		{060BBE8F-9ABF-4682-B473-60620911E11E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{060BBE8F-9ABF-4682-B473-60620911E11E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{060BBE8F-9ABF-4682-B473-60620911E11E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{060BBE8F-9ABF-4682-B473-60620911E11E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
