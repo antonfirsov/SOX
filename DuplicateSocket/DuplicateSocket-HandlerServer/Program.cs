@@ -1,15 +1,16 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace DuplicateSocket_HandlerServer
 {
     internal class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             try
             {
                 using var server = new HandlerServer();
-                server.Run();
+                await server.RunAsync();
             }
             catch (Exception ex)
             {

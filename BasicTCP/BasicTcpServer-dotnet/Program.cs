@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Server
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             System.Reflection.Assembly assembly = typeof(int).Assembly;
             Console.WriteLine(assembly.ImageRuntimeVersion);
@@ -13,7 +14,7 @@ namespace Server
             try
             {
                 using var server = new TestServer();
-                server.Run();
+                server.RunAsync();
             }
             catch (Exception ex)
             {

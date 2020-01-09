@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace DuplicateSocket_ListenerServer
 {
@@ -39,7 +40,7 @@ namespace DuplicateSocket_ListenerServer
             }
         }
         
-        public void Run()
+        public async Task RunAsync()
         {
             Console.WriteLine("********* LISTENER *********");
 
@@ -51,18 +52,13 @@ namespace DuplicateSocket_ListenerServer
             listener.Bind(localEndPoint);
             listener.Listen(10);
 
-            while (true)
-            {
-                Console.WriteLine("Waiting for conn ..");
-                Socket handler = listener.Accept();
-                Console.WriteLine($"ESTABLISHED: {handler.RemoteEndPoint} <------ {handler.LocalEndPoint}");
-                int handlerId = GetHandlerProcessId();
-                SocketInformation socketInfo = handler.DuplicateAndClose(handlerId);
-                
-                SerializeSocketInfo(socketInfo);
-
-                break;
-            }
+            Console.WriteLine("Waiting for conn ..");
+            Socket handler = await listener.AcceptAsync();
+            Console.WriteLine($"ESTABLISHED: {handler.RemoteEndPoint} <------ {handler.LocalEndPoint}");
+            int handlerId = GetHandlerProcessId();
+            SocketInformation socketInfo = handler.DuplicateAndClose(handlerId);
+            
+            SerializeSocketInfo(socketInfo);
         }
 
         public void Dispose()

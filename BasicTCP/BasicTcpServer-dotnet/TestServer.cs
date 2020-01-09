@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Server
 {
@@ -13,7 +14,7 @@ namespace Server
 
         private const int ServerPort = 11000;
 
-        public void Run()
+        public async Task RunAsync()
         {
             Console.WriteLine("********* SERVER *********");
 
@@ -24,17 +25,19 @@ namespace Server
             using Socket listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             listener.Bind(localEndPoint);
             listener.Listen(10);
+            
+            ArraySegment<byte> bufferSegment = new ArraySegment<byte>(_buffer);
 
             while (true)
             {
                 Console.WriteLine("Waiting for conn ..");
-                Socket handler = listener.Accept();
+                Socket handler = await listener.AcceptAsync();
                 Console.WriteLine($"ESTABLISHED: {handler.RemoteEndPoint} <------ {handler.LocalEndPoint}");
 
                 _bld.Clear();
                 while (true)
                 {
-                    int count = handler.Receive(_buffer);
+                    int count = await handler.ReceiveAsync(bufferSegment, SocketFlags.None);
                     string part = Encoding.ASCII.GetString(_buffer, 0, count);
                     _bld.Append(part);
                     if (part.EndsWith("."))
@@ -45,7 +48,8 @@ namespace Server
                         if (recMsg.ToLower() == "exit") break;
 
                         byte[] echo = Encoding.ASCII.GetBytes(recMsg + "!!!");
-                        handler.Send(echo);
+
+                        await handler.SendAsync(new ArraySegment<byte>(echo), SocketFlags.None);
                         _bld.Clear();
                     }
                 }

@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace DuplicateSocket_HandlerServer
 {
@@ -35,7 +36,7 @@ namespace DuplicateSocket_HandlerServer
             return socketInfo;
         }
 
-        public void Run()
+        public async Task RunAsync()
         {
             Console.WriteLine("********* HANDLER *********");
             if (File.Exists(SocketInfoFile)) File.Delete(SocketInfoFile);
@@ -53,7 +54,7 @@ namespace DuplicateSocket_HandlerServer
                     _bld.Clear();
                     while (true)
                     {
-                        int count = handler.Receive(_buffer);
+                        int count = await handler.ReceiveAsync(new ArraySegment<byte>(_buffer), SocketFlags.None);
                         string part = Encoding.ASCII.GetString(_buffer, 0, count);
                         _bld.Append(part);
                         if (part.EndsWith("."))
@@ -64,7 +65,7 @@ namespace DuplicateSocket_HandlerServer
                             if (recMsg.ToLower() == "exit") break;
 
                             byte[] echo = Encoding.ASCII.GetBytes(recMsg + "!!!");
-                            handler.Send(echo);
+                            await handler.SendAsync(new ArraySegment<byte>(echo), SocketFlags.None);
                             _bld.Clear();
                         }
                     }
