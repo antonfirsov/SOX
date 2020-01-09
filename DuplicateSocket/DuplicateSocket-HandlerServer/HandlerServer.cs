@@ -25,8 +25,12 @@ namespace DuplicateSocket_HandlerServer
         
         private static SocketInformation DeserializeSocketInformation()
         {
-            using FileStream fs = File.OpenRead(SocketInfoFile);
-            SocketInformation socketInfo = (SocketInformation) BinaryFormatter.Deserialize(fs);
+            SocketInformation socketInfo;
+            using (FileStream fs = File.OpenRead(SocketInfoFile))
+            {
+                socketInfo = (SocketInformation) BinaryFormatter.Deserialize(fs);
+            }
+            
             File.Delete(SocketInfoFile);
             return socketInfo;
         }
@@ -42,6 +46,31 @@ namespace DuplicateSocket_HandlerServer
                 {
                     SocketInformation socketInfo = DeserializeSocketInformation();
                     Console.WriteLine($"Found Socket info: {socketInfo.Options}");
+                    
+                    Socket handler = new Socket(socketInfo);
+                    Console.WriteLine($"ESTABLISHED from SocketInformation: {handler.RemoteEndPoint} <------ {handler.LocalEndPoint}");
+
+                    _bld.Clear();
+                    while (true)
+                    {
+                        int count = handler.Receive(_buffer);
+                        string part = Encoding.ASCII.GetString(_buffer, 0, count);
+                        _bld.Append(part);
+                        if (part.EndsWith("."))
+                        {
+                            string recMsg = _bld.ToString().Substring(0, _bld.Length - 1);
+                            Console.WriteLine("RECEIVED:" + recMsg);
+
+                            if (recMsg.ToLower() == "exit") break;
+
+                            byte[] echo = Encoding.ASCII.GetBytes(recMsg + "!!!");
+                            handler.Send(echo);
+                            _bld.Clear();
+                        }
+                    }
+                
+                    handler.Shutdown(SocketShutdown.Both);
+                    handler.Close();
                 }
                 
                 Thread.Sleep(100);
