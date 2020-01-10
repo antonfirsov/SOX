@@ -12,6 +12,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DuplicateSocket-ListenerSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DuplicateSocket-HandlerServer", "DuplicateSocket\DuplicateSocket-HandlerServer\DuplicateSocket-HandlerServer.csproj", "{060BBE8F-9ABF-4682-B473-60620911E11E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Other", "Other", "{B467C2BF-079C-4242-98CC-D814E4225ABD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OverlappedIOToTask", "Other\OverlappedIOToTask\OverlappedIOToTask.csproj", "{7384B59E-63A4-4E50-B377-FCE9F9A63508}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +26,7 @@ Global
 		{FBCA8DB5-5162-4851-8AF8-A4ECFAF43F16} = {8779B6D6-49BA-42BF-8C4E-3FE87AEB2BD9}
 		{70046DD1-A276-4920-8DCF-45AC8BFD4446} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
 		{060BBE8F-9ABF-4682-B473-60620911E11E} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
+		{7384B59E-63A4-4E50-B377-FCE9F9A63508} = {B467C2BF-079C-4242-98CC-D814E4225ABD}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{AAA485BB-C0A5-444E-AC77-2113BD232916}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -40,5 +45,9 @@ Global
 		{060BBE8F-9ABF-4682-B473-60620911E11E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{060BBE8F-9ABF-4682-B473-60620911E11E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{060BBE8F-9ABF-4682-B473-60620911E11E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7384B59E-63A4-4E50-B377-FCE9F9A63508}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7384B59E-63A4-4E50-B377-FCE9F9A63508}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7384B59E-63A4-4E50-B377-FCE9F9A63508}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7384B59E-63A4-4E50-B377-FCE9F9A63508}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
