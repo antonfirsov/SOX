@@ -31,7 +31,7 @@ SOCKET DoConnect(PADDRINFOA addr)
     /*SOCKET s = socket(addr->ai_family, addr->ai_socktype,
         addr->ai_protocol);*/
 
-    SOCKET s = WSASocket(addr->ai_family, addr->ai_socktype, addr->ai_protocol, NULL, NULL, 0);
+    SOCKET s = WSASocket(addr->ai_family, addr->ai_socktype, addr->ai_protocol, NULL, NULL, WSA_FLAG_OVERLAPPED);
 
     if (s == INVALID_SOCKET) {
         printf("socket failed with error: %ld\n", WSAGetLastError());

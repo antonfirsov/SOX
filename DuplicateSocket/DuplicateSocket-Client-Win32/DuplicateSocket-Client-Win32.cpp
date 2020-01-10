@@ -124,7 +124,7 @@ public:
 void RunSendLoop(SOCKET s) {
     std::string message;
 
-    //CompletionWorker worker(s);
+    CompletionWorker worker(s);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -135,21 +135,21 @@ void RunSendLoop(SOCKET s) {
         send(s, message.c_str(), message.length(), 0);
 
         if (message == "exit.") {
-            //worker.Stop();
+            worker.Stop();
             break;
         }
 
         if (message[message.length() - 1] == '.') {
-            //worker.ReceiveAsync();
+            worker.ReceiveAsync();
 
-            char buffer[512];
+            /*char buffer[512];
 
             int received = recv(s, buffer, 512, 0);
             if (received > 0 && received < 512) {
                 buffer[received] = 0;
                 std::string echo(buffer);
                 std::cout << "ECHO:" << echo << std::endl;
-            }
+            }*/
         }
     }
 }
@@ -172,7 +172,7 @@ int main()
 
     WSAPROTOCOL_INFOW protocolInfo = ReadProtocolInfo();
 
-    SOCKET s = WSASocket(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &protocolInfo, 0, 0);
+    SOCKET s = WSASocket(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &protocolInfo, 0, WSA_FLAG_OVERLAPPED);
 
     if (s != INVALID_SOCKET) {
 
