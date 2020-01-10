@@ -1,4 +1,4 @@
-// BasicTcpClient-Win32.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// DuplicateSocket-Client-Win32.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #define WIN32_LEAN_AND_MEAN
@@ -8,42 +8,22 @@
 #include <ws2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <tlhelp32.h>
 
 
 // Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
+#pragma comment (lib, "Kernel32.lib")
 
 
 #include <iostream>
 #include <string>
 #include <chrono>
 #include <thread>
+#include <fstream>
 
-static const int BUFLEN = 512;
-static const char* PORT = "11000";
-
-SOCKET DoConnect(PADDRINFOA addr)
-{
-    /*SOCKET s = socket(addr->ai_family, addr->ai_socktype,
-        addr->ai_protocol);*/
-
-    SOCKET s = WSASocket(addr->ai_family, addr->ai_socktype, addr->ai_protocol, NULL, NULL, WSA_FLAG_OVERLAPPED);
-
-    if (s == INVALID_SOCKET) {
-        printf("socket failed with error: %ld\n", WSAGetLastError());
-    }
-    else {
-        // Connect to server.
-        int iResult = connect(s, addr->ai_addr, (int)addr->ai_addrlen);
-        if (iResult == SOCKET_ERROR) {
-            closesocket(s);
-            return INVALID_SOCKET;
-        }
-    }
-    return s;
-}
 
 void PressEnter(const char* waitText) {
     std::cout << "Press ENTER to " << waitText;
@@ -51,6 +31,15 @@ void PressEnter(const char* waitText) {
     std::getline(std::cin, dummy);
 }
 
+const char* PROTOCOL_INFO_FILE = "..\\_ProtocolInfo.bin";
+
+WSAPROTOCOL_INFOW ReadProtocolInfo() {
+    std::ifstream f(PROTOCOL_INFO_FILE, std::ifstream::binary);
+    WSAPROTOCOL_INFOW protocolInfo;
+    f.read((char*)&protocolInfo, sizeof(WSAPROTOCOL_INFOW));
+    DeleteFileA(PROTOCOL_INFO_FILE);
+    return protocolInfo;
+}
 
 class CompletionWorker {
     HANDLE _thread;
@@ -61,7 +50,7 @@ class CompletionWorker {
     WSABUF _wsaBuf;
     char _buffer[512];
     OVERLAPPED _overlapped;
-    
+
     bool _stop;
 
     void RunThreadWorker() {
@@ -72,7 +61,7 @@ class CompletionWorker {
             DWORD received;
             if (GetQueuedCompletionStatus(_completionPort, &received, (PULONG_PTR)this, &pOverlapped, 100)) {
                 std::cout << "Got some reply !!!" << std::endl;
-                
+
                 _buffer[received] = 0;
                 std::string echo(_buffer);
                 std::cout << "ECHO:" << echo << std::endl;
@@ -132,11 +121,10 @@ public:
     }
 };
 
-
 void RunSendLoop(SOCKET s) {
     std::string message;
-    
-    CompletionWorker worker(s);
+
+    //CompletionWorker worker(s);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -145,26 +133,26 @@ void RunSendLoop(SOCKET s) {
         std::getline(std::cin, message);
 
         send(s, message.c_str(), message.length(), 0);
-        
+
         if (message == "exit.") {
-            worker.Stop();
+            //worker.Stop();
             break;
         }
 
         if (message[message.length() - 1] == '.') {
-            worker.ReceiveAsync();
-            /*char buffer[512];
+            //worker.ReceiveAsync();
+
+            char buffer[512];
 
             int received = recv(s, buffer, 512, 0);
             if (received > 0 && received < 512) {
                 buffer[received] = 0;
                 std::string echo(buffer);
                 std::cout << "ECHO:" << echo << std::endl;
-            }*/
+            }
         }
     }
 }
-
 
 void InitWinsock() {
     WSADATA wsaData;
@@ -175,39 +163,26 @@ void InitWinsock() {
     }
 }
 
-
 int main()
 {
     InitWinsock();
 
-    ADDRINFOA hints = {};
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
+    DeleteFileA(PROTOCOL_INFO_FILE);
+    PressEnter("Read _ProtocolInfo.bin");
 
-    PADDRINFOA addr = NULL;
-    if (getaddrinfo("localhost", PORT, &hints, &addr) != 0) {
-        std::cout << "getaddrinfo failed\n";
-        WSACleanup();
-        return 1;
-    }
+    WSAPROTOCOL_INFOW protocolInfo = ReadProtocolInfo();
 
-    PressEnter("connect ...");
-    
-    int cnt = 0;
-    SOCKET s = DoConnect(addr);
-    freeaddrinfo(addr);
+    SOCKET s = WSASocket(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &protocolInfo, 0, 0);
 
     if (s != INVALID_SOCKET) {
-        std::cout << "CONNECTED!!!!\n";
 
         RunSendLoop(s);
 
         closesocket(s);
     }
-    
-    WSACleanup();
+    else {
+        std::cout << "Error creating socket: " << WSAGetLastError() << std::endl;
+    }
 
-    PressEnter("close");
-    return 0;
+    PressEnter("die");
 }

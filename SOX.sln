@@ -21,6 +21,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OverlappedIOToTask", "Other
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BasicTcpClient-Win32", "BasicTCP\BasicTcpClient-Win32\BasicTcpClient-Win32.vcxproj", "{64243555-E6C9-4299-90A2-EDB5038C03D8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuplicateSocket-ClientFactory-Win32", "DuplicateSocket\DuplicateSocket-ClientFactory-Win32\DuplicateSocket-ClientFactory-Win32.vcxproj", "{40566E96-67FC-4DE2-B787-31EB859BBDD9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuplicateSocket-Client-Win32", "DuplicateSocket\DuplicateSocket-Client-Win32\DuplicateSocket-Client-Win32.vcxproj", "{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -101,6 +105,26 @@ Global
 		{64243555-E6C9-4299-90A2-EDB5038C03D8}.Release|x64.Build.0 = Release|x64
 		{64243555-E6C9-4299-90A2-EDB5038C03D8}.Release|x86.ActiveCfg = Release|Win32
 		{64243555-E6C9-4299-90A2-EDB5038C03D8}.Release|x86.Build.0 = Release|Win32
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Debug|x64.ActiveCfg = Debug|x64
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Debug|x64.Build.0 = Debug|x64
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Debug|x86.ActiveCfg = Debug|Win32
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Debug|x86.Build.0 = Debug|Win32
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Release|Any CPU.ActiveCfg = Release|Win32
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Release|x64.ActiveCfg = Release|x64
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Release|x64.Build.0 = Release|x64
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Release|x86.ActiveCfg = Release|Win32
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9}.Release|x86.Build.0 = Release|Win32
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Debug|x64.ActiveCfg = Debug|x64
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Debug|x64.Build.0 = Debug|x64
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Debug|x86.ActiveCfg = Debug|Win32
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Debug|x86.Build.0 = Debug|Win32
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Release|Any CPU.ActiveCfg = Release|Win32
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Release|x64.ActiveCfg = Release|x64
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Release|x64.Build.0 = Release|x64
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Release|x86.ActiveCfg = Release|Win32
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -112,6 +136,8 @@ Global
 		{060BBE8F-9ABF-4682-B473-60620911E11E} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
 		{7384B59E-63A4-4E50-B377-FCE9F9A63508} = {B467C2BF-079C-4242-98CC-D814E4225ABD}
 		{64243555-E6C9-4299-90A2-EDB5038C03D8} = {8779B6D6-49BA-42BF-8C4E-3FE87AEB2BD9}
+		{40566E96-67FC-4DE2-B787-31EB859BBDD9} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
+		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {92E1B14A-9834-4D16-A6E0-ADB9E50A1ED5}
