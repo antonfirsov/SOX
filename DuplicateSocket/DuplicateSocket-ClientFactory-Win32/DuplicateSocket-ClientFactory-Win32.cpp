@@ -28,10 +28,13 @@ static const char* PORT = "11000";
 
 SOCKET DoConnect(PADDRINFOA addr)
 {
-    /*SOCKET s = socket(addr->ai_family, addr->ai_socktype,
-        addr->ai_protocol);*/
+    SOCKET s = WSASocket(addr->ai_family, addr->ai_socktype, addr->ai_protocol, NULL, NULL, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
 
-    SOCKET s = WSASocket(addr->ai_family, addr->ai_socktype, addr->ai_protocol, NULL, NULL, WSA_FLAG_OVERLAPPED);
+    DWORD info;
+    if (GetHandleInformation((HANDLE)s, &info)) 
+    {
+        std::cout << "handle INFO: " << info << std::endl;
+    }
 
     if (s == INVALID_SOCKET) {
         printf("socket failed with error: %ld\n", WSAGetLastError());

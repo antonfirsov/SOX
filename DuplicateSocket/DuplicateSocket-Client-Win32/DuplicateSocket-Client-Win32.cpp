@@ -175,6 +175,11 @@ int main()
     SOCKET s = WSASocket(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &protocolInfo, 0, WSA_FLAG_OVERLAPPED);
 
     if (s != INVALID_SOCKET) {
+        DWORD info;
+        if (GetHandleInformation((HANDLE)s, &info))
+        {
+            std::cout << "handle INFO: " << info << std::endl;
+        }
 
         RunSendLoop(s);
 
