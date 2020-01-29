@@ -27,6 +27,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuplicateSocket-Client-Win3
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ControlDupHandleInheritance", "ControlDupHandleInheritance\ControlDupHandleInheritance.vcxproj", "{F54D5E70-E881-4F76-BAC5-775FF76838E7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BasicUDP", "BasicUDP", "{FAF9EA2C-EADD-4CA0-A437-4EF94837710A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UDP-SendTo-ReceiveFrom", "UDP-SendTo-ReceiveFrom\UDP-SendTo-ReceiveFrom.csproj", "{5071BC94-13E4-416A-B6B7-A5C872B1ED41}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -137,6 +141,18 @@ Global
 		{F54D5E70-E881-4F76-BAC5-775FF76838E7}.Release|x64.Build.0 = Release|x64
 		{F54D5E70-E881-4F76-BAC5-775FF76838E7}.Release|x86.ActiveCfg = Release|Win32
 		{F54D5E70-E881-4F76-BAC5-775FF76838E7}.Release|x86.Build.0 = Release|Win32
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Debug|x64.Build.0 = Debug|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Debug|x86.Build.0 = Debug|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Release|x64.ActiveCfg = Release|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Release|x64.Build.0 = Release|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Release|x86.ActiveCfg = Release|Any CPU
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -151,6 +167,7 @@ Global
 		{40566E96-67FC-4DE2-B787-31EB859BBDD9} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
 		{E12DC8AA-5A9D-4E15-A689-43EEA273DA68} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
 		{F54D5E70-E881-4F76-BAC5-775FF76838E7} = {437FBA88-D655-4112-B304-ADB93BA7BA62}
+		{5071BC94-13E4-416A-B6B7-A5C872B1ED41} = {FAF9EA2C-EADD-4CA0-A437-4EF94837710A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {92E1B14A-9834-4D16-A6E0-ADB9E50A1ED5}
