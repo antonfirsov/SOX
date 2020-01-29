@@ -172,9 +172,10 @@ int main()
 
     WSAPROTOCOL_INFOW protocolInfo = ReadProtocolInfo();
 
-    SOCKET s = WSASocket(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &protocolInfo, 0, WSA_FLAG_OVERLAPPED);
+    SOCKET s = WSASocket(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &protocolInfo, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
 
     if (s != INVALID_SOCKET) {
+        SetHandleInformation((HANDLE)s, HANDLE_FLAG_INHERIT, 0);
         DWORD info;
         if (GetHandleInformation((HANDLE)s, &info))
         {
