@@ -28,17 +28,17 @@ namespace UDP_StressTest
 
         private static readonly IPAddress Address = IPAddress.Loopback;
 
-        public static TestRepro CreateSync(int datagramSize, int datagramsToSend)
+        public static TestRepro CreateSync(int datagramSize, int datagramsToSend, string name)
         {
             var output = new TestOutputHelper();
-            output.Prefix = "[Sync]";
+            output.Prefix = $"[{name}]";
             return new TestRepro(output, new SocketHelperSpanSync(output), datagramSize, datagramsToSend);
         }
 
-        public static TestRepro CreateAsync(int datagramSize, int datagramsToSend)
+        public static TestRepro CreateAsync(int datagramSize, int datagramsToSend, string name)
         {
             var output = new TestOutputHelper();
-            output.Prefix = "[Async]";
+            output.Prefix = $"[{name}]";
             return new TestRepro(output, new SocketHelperEap(output), datagramSize, datagramsToSend);
         }
 
