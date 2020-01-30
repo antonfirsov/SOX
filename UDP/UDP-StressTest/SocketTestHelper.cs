@@ -11,20 +11,17 @@ using System.Threading.Tasks;
 
 namespace UDP_StressTest
 {
-    public interface ITestOutputHelper
-    {
-        public void WriteLine(string msg)
-        {
-            Console.WriteLine(msg);
-        }
-    }
-    
-    public class TestOutputHelper : ITestOutputHelper{}
-    
     // Abstract base class for various different socket "modes" (sync, async, etc)
     // See SendReceive.cs for usage
     public abstract class SocketHelperBase
     {
+        protected SocketHelperBase(ITestOutputHelper output)
+        {
+            Output = output;
+        }
+
+        protected ITestOutputHelper Output { get; }
+        
         public abstract Task<Socket> AcceptAsync(Socket s);
         public abstract Task<Socket> AcceptAsync(Socket s, Socket acceptSocket);
         public abstract Task ConnectAsync(Socket s, EndPoint endPoint);
@@ -81,6 +78,10 @@ namespace UDP_StressTest
         public override bool UsesSync => true;
         public override bool ConnectAfterDisconnectResultsInInvalidOperationException => true;
         public override bool SupportsAcceptIntoExistingSocket => false;
+
+        public SocketHelperArraySync(ITestOutputHelper output) : base(output)
+        {
+        }
     }
 
 
@@ -131,6 +132,10 @@ namespace UDP_StressTest
                 s.EndSendTo, null);
 
         public override bool UsesApm => true;
+
+        public SocketHelperApm(ITestOutputHelper output) : base(output)
+        {
+        }
     }
 
     public class SocketHelperTask : SocketHelperBase
@@ -155,6 +160,10 @@ namespace UDP_StressTest
             s.SendAsync(bufferList, SocketFlags.None);
         public override Task<int> SendToAsync(Socket s, ArraySegment<byte> buffer, EndPoint endPoint) =>
             s.SendToAsync(buffer, SocketFlags.None, endPoint);
+
+        public SocketHelperTask(ITestOutputHelper output) : base(output)
+        {
+        }
     }
 
     public sealed class SocketHelperEap : SocketHelperBase
@@ -162,60 +171,61 @@ namespace UDP_StressTest
         public override bool ValidatesArrayArguments => false;
 
         public override Task<Socket> AcceptAsync(Socket s) =>
-            InvokeAsync(s, e => e.AcceptSocket, e => s.AcceptAsync(e));
+            InvokeAsync("AcceptAsync", s, e => e.AcceptSocket, e => s.AcceptAsync(e));
         public override Task<Socket> AcceptAsync(Socket s, Socket acceptSocket) =>
-            InvokeAsync(s, e => e.AcceptSocket, e =>
+            InvokeAsync("AcceptAsync", s, e => e.AcceptSocket, e =>
             {
                 e.AcceptSocket = acceptSocket;
                 return s.AcceptAsync(e);
             });
         public override Task ConnectAsync(Socket s, EndPoint endPoint) =>
-            InvokeAsync(s, e => true, e =>
+            InvokeAsync("ConnectAsync", s, e => true, e =>
             {
                 e.RemoteEndPoint = endPoint;
                 return s.ConnectAsync(e);
             });
         public override Task MultiConnectAsync(Socket s, IPAddress[] addresses, int port) => throw new NotSupportedException();
         public override Task<int> ReceiveAsync(Socket s, ArraySegment<byte> buffer) =>
-            InvokeAsync(s, e => e.BytesTransferred, e =>
+            InvokeAsync("ReceiveAsync", s, e => e.BytesTransferred, e =>
             {
                 e.SetBuffer(buffer.Array, buffer.Offset, buffer.Count);
                 return s.ReceiveAsync(e);
             });
         public override Task<int> ReceiveAsync(Socket s, IList<ArraySegment<byte>> bufferList) =>
-            InvokeAsync(s, e => e.BytesTransferred, e =>
+            InvokeAsync("ReceiveAsync", s, e => e.BytesTransferred, e =>
             {
                 e.BufferList = bufferList;
                 return s.ReceiveAsync(e);
             });
         public override Task<SocketReceiveFromResult> ReceiveFromAsync(Socket s, ArraySegment<byte> buffer, EndPoint endPoint) =>
-            InvokeAsync(s, e => new SocketReceiveFromResult { ReceivedBytes = e.BytesTransferred, RemoteEndPoint = e.RemoteEndPoint }, e =>
+            InvokeAsync("ReceiveFromAsync", s, e => new SocketReceiveFromResult { ReceivedBytes = e.BytesTransferred, RemoteEndPoint = e.RemoteEndPoint }, e =>
             {
                 e.SetBuffer(buffer.Array, buffer.Offset, buffer.Count);
                 e.RemoteEndPoint = endPoint;
                 return s.ReceiveFromAsync(e);
             });
         public override Task<int> SendAsync(Socket s, ArraySegment<byte> buffer) =>
-            InvokeAsync(s, e => e.BytesTransferred, e =>
+            InvokeAsync("SendAsync", s, e => e.BytesTransferred, e =>
             {
                 e.SetBuffer(buffer.Array, buffer.Offset, buffer.Count);
                 return s.SendAsync(e);
             });
         public override Task<int> SendAsync(Socket s, IList<ArraySegment<byte>> bufferList) =>
-            InvokeAsync(s, e => e.BytesTransferred, e =>
+            InvokeAsync("SendAsync",s, e => e.BytesTransferred, e =>
             {
                 e.BufferList = bufferList;
                 return s.SendAsync(e);
             });
         public override Task<int> SendToAsync(Socket s, ArraySegment<byte> buffer, EndPoint endPoint) =>
-            InvokeAsync(s, e => e.BytesTransferred, e =>
+            InvokeAsync("SendToAsync", s, e => e.BytesTransferred, e =>
             {
                 e.SetBuffer(buffer.Array, buffer.Offset, buffer.Count);
                 e.RemoteEndPoint = endPoint;
                 return s.SendToAsync(e);
             });
 
-        private static Task<TResult> InvokeAsync<TResult>(
+        private Task<TResult> InvokeAsync<TResult>(
+            string operationName,
             Socket s,
             Func<SocketAsyncEventArgs, TResult> getResult,
             Func<SocketAsyncEventArgs, bool> invoke)
@@ -232,49 +242,22 @@ namespace UDP_StressTest
             };
             saea.Completed += handler;
             if (!invoke(saea))
+            {
+                Output.WriteLine($"- ! {operationName}: completed synchronously!");
                 handler(s, saea);
+            }
+            else
+            {
+                Output.WriteLine($"- ? {operationName}: async invocation");
+            }
             return tcs.Task;
         }
 
         public override bool SupportsMultiConnect => false;
-    }
 
-    public abstract class SocketTestHelperBase<T> : MemberDatas
-        where T : SocketHelperBase, new()
-    {
-        private readonly T _socketHelper;
-        public readonly ITestOutputHelper _output;
-
-        public SocketTestHelperBase(ITestOutputHelper output)
+        public SocketHelperEap(ITestOutputHelper output) : base(output)
         {
-            _socketHelper = new T();
-            _output = output;
         }
-
-        //
-        // Methods that delegate to SocketHelper implementation
-        //
-
-        public Task<Socket> AcceptAsync(Socket s) => _socketHelper.AcceptAsync(s);
-        public Task<Socket> AcceptAsync(Socket s, Socket acceptSocket) => _socketHelper.AcceptAsync(s, acceptSocket);
-        public Task ConnectAsync(Socket s, EndPoint endPoint) => _socketHelper.ConnectAsync(s, endPoint);
-        public Task MultiConnectAsync(Socket s, IPAddress[] addresses, int port) => _socketHelper.MultiConnectAsync(s, addresses, port);
-        public Task<int> ReceiveAsync(Socket s, ArraySegment<byte> buffer) => _socketHelper.ReceiveAsync(s, buffer);
-        public Task<SocketReceiveFromResult> ReceiveFromAsync(
-            Socket s, ArraySegment<byte> buffer, EndPoint endPoint) => _socketHelper.ReceiveFromAsync(s, buffer, endPoint);
-        public Task<int> ReceiveAsync(Socket s, IList<ArraySegment<byte>> bufferList) => _socketHelper.ReceiveAsync(s, bufferList);
-        public Task<int> SendAsync(Socket s, ArraySegment<byte> buffer) => _socketHelper.SendAsync(s, buffer);
-        public Task<int> SendAsync(Socket s, IList<ArraySegment<byte>> bufferList) => _socketHelper.SendAsync(s, bufferList);
-        public Task<int> SendToAsync(Socket s, ArraySegment<byte> buffer, EndPoint endpoint) => _socketHelper.SendToAsync(s, buffer, endpoint);
-        public bool GuaranteedSendOrdering => _socketHelper.GuaranteedSendOrdering;
-        public bool ValidatesArrayArguments => _socketHelper.ValidatesArrayArguments;
-        public bool UsesSync => _socketHelper.UsesSync;
-        public bool UsesApm => _socketHelper.UsesApm;
-        public bool DisposeDuringOperationResultsInDisposedException => _socketHelper.DisposeDuringOperationResultsInDisposedException;
-        public bool ConnectAfterDisconnectResultsInInvalidOperationException => _socketHelper.ConnectAfterDisconnectResultsInInvalidOperationException;
-        public bool SupportsMultiConnect => _socketHelper.SupportsMultiConnect;
-        public bool SupportsAcceptIntoExistingSocket => _socketHelper.SupportsAcceptIntoExistingSocket;
-        public void Listen(Socket s, int backlog) => _socketHelper.Listen(s, backlog);
     }
 
     public class SocketHelperSpanSync : SocketHelperArraySync
@@ -285,6 +268,10 @@ namespace UDP_StressTest
         public override Task<int> SendAsync(Socket s, ArraySegment<byte> buffer) =>
             Task.Run(() => s.Send((ReadOnlySpan<byte>)buffer, SocketFlags.None));
         public override bool UsesSync => true;
+
+        public SocketHelperSpanSync(ITestOutputHelper output) : base(output)
+        {
+        }
     }
 
 
@@ -295,51 +282,10 @@ namespace UDP_StressTest
             s.ReceiveAsync((Memory<byte>)buffer, SocketFlags.None).AsTask();
         public override Task<int> SendAsync(Socket s, ArraySegment<byte> buffer) =>
             s.SendAsync((ReadOnlyMemory<byte>)buffer, SocketFlags.None).AsTask();
-    }
 
-    //
-    // MemberDatas that are generally useful
-    //
-
-    public abstract class MemberDatas
-    {
-        public static readonly object[][] Loopbacks = new[]
+        public SocketHelperMemoryArrayTask(ITestOutputHelper output) : base(output)
         {
-            new object[] { IPAddress.Loopback },
-            new object[] { IPAddress.IPv6Loopback },
-        };
-
-        public static readonly object[][] LoopbacksAndBuffers = new object[][]
-        {
-            new object[] { IPAddress.IPv6Loopback, true },
-            new object[] { IPAddress.IPv6Loopback, false },
-            new object[] { IPAddress.Loopback, true },
-            new object[] { IPAddress.Loopback, false },
-        };
-    }
-
-    //
-    // Utility stuff
-    //
-
-    internal struct FakeArraySegment
-    {
-        public byte[] Array;
-        public int Offset;
-        public int Count;
-
-        public ArraySegment<byte> ToActual()
-        {
-            ArraySegmentWrapper wrapper = default(ArraySegmentWrapper);
-            wrapper.Fake = this;
-            return wrapper.Actual;
         }
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    internal struct ArraySegmentWrapper
-    {
-        [FieldOffset(0)] public ArraySegment<byte> Actual;
-        [FieldOffset(0)] public FakeArraySegment Fake;
-    }
 }

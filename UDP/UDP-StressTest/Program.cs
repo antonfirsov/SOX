@@ -1,15 +1,14 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace UDP_StressTest
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            TestRepro repro = TestRepro.CreateAsync(1, 10);
+            await repro.RunAsync();
         }
-        
-        
-        
     }
 }

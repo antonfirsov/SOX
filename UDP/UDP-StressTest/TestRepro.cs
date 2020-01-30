@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -11,36 +12,63 @@ namespace UDP_StressTest
         public static int BindToAnonymousPort(this Socket socket, IPAddress address)
         {
             socket.Bind(new IPEndPoint(address, 0));
-            return ((IPEndPoint)socket.LocalEndPoint).Port;
+            return ((IPEndPoint) socket.LocalEndPoint).Port;
         }
     }
-    
-    public class TestRepro 
-    {
-        private ITestOutputHelper _output;
-        private SocketHelperBase _helper;
 
-        public TestRepro(ITestOutputHelper output, SocketHelperBase helper)
+    public class TestRepro
+    {
+        private const int AckTimeout = 10000;
+        private const int TestTimeout = 30000;
+
+        private readonly ITestOutputHelper _output;
+        private readonly SocketHelperBase _helper;
+        private readonly int _datagramSize;
+        private readonly int _datagramsToSend;
+
+        private static readonly IPAddress Address = IPAddress.Loopback;
+
+        public static TestRepro CreateSync(int datagramSize, int datagramsToSend)
+        {
+            var output = new TestOutputHelper();
+            output.Prefix = "[Sync]";
+            return new TestRepro(output, new SocketHelperSpanSync(output), datagramSize, datagramsToSend);
+        }
+
+        public static TestRepro CreateAsync(int datagramSize, int datagramsToSend)
+        {
+            var output = new TestOutputHelper();
+            output.Prefix = "[Async]";
+            return new TestRepro(output, new SocketHelperEap(output), datagramSize, datagramsToSend);
+        }
+
+        public TestRepro(ITestOutputHelper output, SocketHelperBase helper, int datagramSize, int datagramsToSend)
         {
             _output = output;
             _helper = helper;
+            _datagramSize = datagramSize;
+            _datagramsToSend = datagramsToSend;
         }
 
-        public async Task SendToRecvFrom_Datagram_UDP(IPAddress loopbackAddress, int datagramSize, int datagramsToSend)
+        private async Task Measure(string msg, Func<Task> action)
         {
-            IPAddress leftAddress = loopbackAddress, rightAddress = loopbackAddress;
+            _output.WriteLine($"{msg} ...");
+            Stopwatch sw = Stopwatch.StartNew();
+            await action();
+            sw.Stop();
+            _output.WriteLine($"{msg} completed in {sw.ElapsedMilliseconds} ms");
+        }
 
-            const int AckTimeout = 10000;
-            const int TestTimeout = 30000;
+        public async Task RunAsync()
+        {
+            var left = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            left.BindToAnonymousPort(Address);
 
-            var left = new Socket(leftAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            left.BindToAnonymousPort(leftAddress);
+            var right = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            right.BindToAnonymousPort(Address);
 
-            var right = new Socket(rightAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            right.BindToAnonymousPort(rightAddress);
-
-            var leftEndpoint = (IPEndPoint)left.LocalEndPoint;
-            var rightEndpoint = (IPEndPoint)right.LocalEndPoint;
+            var leftEndpoint = (IPEndPoint) left.LocalEndPoint;
+            var rightEndpoint = (IPEndPoint) right.LocalEndPoint;
 
             var receiverAck = new SemaphoreSlim(0);
             var senderAck = new SemaphoreSlim(0);
@@ -52,15 +80,17 @@ namespace UDP_StressTest
                 using (left)
                 {
                     EndPoint remote = leftEndpoint.Create(leftEndpoint.Serialize());
-                    var recvBuffer = new byte[datagramSize];
-                    for (int i = 0; i < datagramsToSend; i++)
+                    var recvBuffer = new byte[_datagramSize];
+                    for (int i = 0; i < _datagramsToSend; i++)
                     {
-                        SocketReceiveFromResult result = await _helper.ReceiveFromAsync(
-                            left, new ArraySegment<byte>(recvBuffer), remote);
-
+                        await Measure("Receiving", async () =>
+                        {
+                            await _helper.ReceiveFromAsync(
+                                left, new ArraySegment<byte>(recvBuffer), remote);
+                        });
+                        
                         receiverAck.Release();
-                        bool gotAck = await senderAck.WaitAsync(TestTimeout);
-                        Console.WriteLine("gotAck: "+gotAck);
+                        await senderAck.WaitAsync(TestTimeout);
                     }
                 }
             });
@@ -68,17 +98,19 @@ namespace UDP_StressTest
             using (right)
             {
                 var random = new Random();
-                var sendBuffer = new byte[datagramSize];
-                for (int i = 0; i < datagramsToSend; i++)
+                var sendBuffer = new byte[_datagramSize];
+                for (int i = 0; i < _datagramsToSend; i++)
                 {
                     random.NextBytes(sendBuffer);
-                    sendBuffer[0] = (byte)i;
+                    sendBuffer[0] = (byte) i;
 
                     int sent = await _helper.SendToAsync(right, new ArraySegment<byte>(sendBuffer), leftEndpoint);
 
-                    bool gotAck = await receiverAck.WaitAsync(AckTimeout);
-                    Console.WriteLine("GotAck: "+gotAck);
-                    
+                    await Measure("Waiting for receiver ack", async () =>
+                    {
+                        await receiverAck.WaitAsync(AckTimeout);
+                    });
+
                     senderAck.Release();
                 }
             }
