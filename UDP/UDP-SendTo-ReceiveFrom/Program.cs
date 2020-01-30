@@ -32,7 +32,7 @@ namespace UDP_SendTo_ReceiveFrom
         static async Task Main(string[] args)
         {
             await SendReceiveSingle(AddressFamily.InterNetwork);
-            await SendReceiveSingle(AddressFamily.InterNetworkV6);
+            //await SendReceiveSingle(AddressFamily.InterNetworkV6);
         }
 
         private const int Port0 = 25010;
@@ -44,8 +44,9 @@ namespace UDP_SendTo_ReceiveFrom
         {
             private IPAddress _address;
             
-            public SocketNode(AddressFamily addressFamily, int port)
+            public SocketNode(string name, AddressFamily addressFamily, int port, bool bind = true)
             {
+                Name = name;
                 AddressFamily = addressFamily;
                 Port = port;
                 _address = addressFamily == AddressFamily.InterNetwork
@@ -53,9 +54,14 @@ namespace UDP_SendTo_ReceiveFrom
                     : IPAddress.IPv6Loopback;
                 Socket = new Socket(addressFamily, SocketType.Dgram, ProtocolType.Udp);
                 Data = Guid.NewGuid().ToByteArray();
-                EndPoint = new IPEndPoint(_address, port);
+                EndPoint = MakeEndpoint(port);
+                
+                if (bind) Bind();
             }
 
+            public IPEndPoint MakeEndpoint(int port) => new IPEndPoint(_address, port);
+
+            public string Name { get; }
             public AddressFamily AddressFamily { get; }
             public int Port { get; }
             public Socket Socket { get; }
@@ -69,28 +75,45 @@ namespace UDP_SendTo_ReceiveFrom
 
             public Task<int> SendToAsync(EndPoint remote)
             {
+                Console.WriteLine($"{this}  ==S2==> {remote} ...");
                 return Socket.SendToAsync(Data, SocketFlags.None, remote);
             }
 
             public Task<SocketReceiveFromResult> ReceiveFromAsync(EndPoint remote)
             {
+                Console.WriteLine($"{this} <==RF==  {remote} ...");
                 return Socket.ReceiveFromAsync(Data, SocketFlags.None, remote);
             }
+
+            public EndPoint CreateEndPointSnapshot() => EndPoint.Create(EndPoint.Serialize());
+
+            public override string ToString() => $"sock[{Name}]@{EndPoint}]";
         }
         
         private static async Task SendReceiveSingle(AddressFamily addressFamily)
         {
-            using var sndA = new SocketNode(addressFamily, Port0);
-            using var rcvA = new SocketNode(addressFamily, Port1);
+            // using var a = new SocketNode("a", addressFamily, Port0, false);
+            // using var b = new SocketNode("b", addressFamily, Port1, false);
             
-            sndA.Bind();
-            rcvA.Bind();
+            using var a = new Socket(addressFamily, SocketType.Dgram, ProtocolType.Udp);
+            a.Bind(new IPEndPoint(IPAddress.Loopback, Port0));
+            
+            using var b = new Socket(addressFamily, SocketType.Dgram, ProtocolType.Udp);
+            b.Bind(new IPEndPoint(IPAddress.Loopback, Port1));
 
-            await sndA.SendToAsync(rcvA.EndPoint);
+            await a.SendToAsync(new byte[] {1,2,3}, SocketFlags.None, new IPEndPoint(IPAddress.Loopback, Port1));
 
-            var result = await rcvA.ReceiveFromAsync(sndA.EndPoint);
+            byte[] buffer = new byte[128];
 
-            rcvA.Data.MustBeSequenceEqualTo(sndA.Data);
+            var lol = new IPEndPoint(IPAddress.Loopback, Port0);
+            
+            var bResult = await b.ReceiveFromAsync(buffer, SocketFlags.None, lol);
+
+            Console.WriteLine(lol.ToString());
+            Console.WriteLine("b received shit from: " + bResult.RemoteEndPoint);
+            Console.WriteLine("b received shit from: " + buffer[0]);
+
+            Console.WriteLine(ReferenceEquals(lol, bResult.RemoteEndPoint));
 
             Console.WriteLine("Cool!");
         }
