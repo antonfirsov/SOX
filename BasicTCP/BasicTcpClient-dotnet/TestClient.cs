@@ -12,12 +12,19 @@ namespace Client
         private StringBuilder _bld = new StringBuilder();
         private const int ServerPort = 11000;
 
+        private static IPAddress GetOwnIP()
+        {
+            string hostName = Dns.GetHostName();
+            IPHostEntry ipHostInfo = Dns.GetHostEntry(hostName);
+            IPAddress[] addresses = ipHostInfo.AddressList.Where(a => a.AddressFamily == AddressFamily.InterNetwork).ToArray();
+            return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("172"));
+        }
+
         public void Run()
         {
             Console.WriteLine("********* CLIENT *********");
 
-            IPHostEntry ipHostInfo = Dns.GetHostEntry("localhost");
-            IPAddress ipAddress = ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork);
+            IPAddress ipAddress = GetOwnIP();
             IPEndPoint remoteEndpoint = new IPEndPoint(ipAddress, ServerPort);
 
             using Socket sender = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
