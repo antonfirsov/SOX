@@ -14,17 +14,24 @@
 void* _RunServerThread(void* arg);
 
 class EpollServer {
-private:
+    static const int BUFFER_SIZE = 512;
+    static const int MAX_EPOLL_EVENTS = 64;
+
     sockaddr_in _serverAddress;
     const char* _ipStr;
 
     int _listenerSocket;
-    int _epoll;
+    
     pthread_t _handlerThread;
+
+    int _epoll;
+    epoll_event _events[MAX_EPOLL_EVENTS];
 
     const sockaddr* ServerSockaddr() const {
         return reinterpret_cast<const sockaddr*>(&_serverAddress);
     }
+
+    
 
 public:
     EpollServer(const char* ipAddressStr, const uint16_t port)
@@ -36,13 +43,18 @@ public:
     }
 
     void Initialize() {
-        _epoll = epoll_create1(0);
-
         _listenerSocket = TRY("Socket creation",
-            socket(AF_INET, SOCK_STREAM, 0)
+            socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)
             );
         TRY("Bind", bind(_listenerSocket, ServerSockaddr(), sizeof(_serverAddress)));
         TRY("Listen", listen(_listenerSocket, 10));
+
+        _epoll = TRY("epoll_create", epoll_create1(0));
+
+        epoll_event evt = { };
+        evt.data.fd = _listenerSocket;
+        evt.events = EPOLLIN/* | EPOLLET*/;
+        TRYZ("epoll_ctl", epoll_ctl(_epoll, EPOLL_CTL_ADD, _listenerSocket, &evt));
 
         std::cout << "*** SERVER listening at " << _ipStr << " " << _serverAddress.sin_port << std::endl;
     }
@@ -57,17 +69,35 @@ public:
 
     void HandleRequests() {
 
-        char buffer[256];
+        char buffer[BUFFER_SIZE];
+
+        epoll_event evt = { };
 
         while (true) {
             std::cout << "Waiting for connection ... ";
 
-            int handlerSocket = TRY("Accept", accept(_listenerSocket, NULL, NULL));
+            //int handlerSocket = TRY("Accept", accept(_listenerSocket, NULL, NULL));
 
-            std::string message;
+            int eventNo = TRY("epoll_wait", epoll_wait(_epoll, _events, MAX_EPOLL_EVENTS, -1));
+
+            for (int i = 0; i < eventNo; i++)
+            {
+                epoll_event& e = _events[i];
+                if (e.data.fd == _listenerSocket) {
+                    int handlerSocket = TRY("accept4", accept4(_listenerSocket, NULL, NULL, SOCK_NONBLOCK));
+                    evt.events = EPOLLIN | EPOLLET;
+                    evt.data.fd = handlerSocket;
+
+                    TRYZ("epoll_ctl (handler)", epoll_ctl(_epoll, EPOLL_CTL_ADD, handlerSocket, &evt));
+                    std::cout << "Connection accepted!" << std::endl;
+                }
+            }
+
+            /*std::string message;
 
             while (true) {
-                long count = TRY("recv", recv(handlerSocket, buffer, 256, 0));
+                long count = TRY("recv", recv(handlerSocket, buffer, BUFFER_SIZE, 0));
+
                 auto part = std::string(buffer, static_cast<size_t>(count));
                 message += part;
                 if (part[part.length() - 1] == '.') {
@@ -82,7 +112,7 @@ public:
                     TRY("Send echo", send(handlerSocket, message.c_str(), message.length(), 0));
                     message.clear();
                 }
-            }
+            }*/
         }
     }
 
