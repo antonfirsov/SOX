@@ -35,9 +35,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{8a443633-5b7e-435e-b3bb-d3246a1d89f5}</ProjectGuid>
+    <ProjectGuid>{7feda929-669b-40de-b361-0a0812c83f62}</ProjectGuid>
     <Keyword>Linux</Keyword>
-    <RootNamespace>BasicTcpClient_Linux</RootNamespace>
+    <RootNamespace>BasicTcpServer_Linux</RootNamespace>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <ApplicationType>Linux</ApplicationType>
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
@@ -86,7 +86,8 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Client.hpp" />
+    <ClInclude Include="BasicServer.hpp" />
+    <ClInclude Include="Common.hpp" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
