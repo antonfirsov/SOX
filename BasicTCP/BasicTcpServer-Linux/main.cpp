@@ -8,7 +8,14 @@ void DoStuff() {
     
     BasicServer server("172.17.204.253", 11000);
     server.CreateListenerSocket();
-    server.HandleRequests();
+    //server.HandleRequests();
+
+    server.BeginHandlingRequests();
+
+    PressEnter2("abort server");
+    std::cout << " aborting... ";
+    server.EndHandlingRequests();
+    std::cout << "DONE." << std::endl;
 }
 
 int main()

@@ -2,6 +2,7 @@
 
 #include <iostream> 
 #include <cstring>
+#include <sstream> 
 
 void PressEnter2(const char* opName) {
     std::cout << "Press Enter to " << opName << '!' << std::endl;
@@ -16,4 +17,13 @@ auto TryStuff(const char* opName, F&& lambda) -> decltype(lambda()) {
     return fd;
 }
 
+template<typename F>
+void TryStuffExpectZero(const char* opName, F&& lambda) {
+    int err = lambda();
+    std::stringstream ss;
+    ss << opName << " failed! Error code: " << err;
+    if (err != 0) throw std::runtime_error(ss.str());
+}
+
 #define TRY( opName, operation ) TryStuff(opName, [&]() { return operation; })
+#define TRYZ( opName, operation ) TryStuffExpectZero(opName, [&]() { return operation; })

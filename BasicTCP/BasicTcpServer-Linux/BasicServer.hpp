@@ -7,11 +7,16 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <pthread.h>
+
+void* _RunServerThread(void* arg);
+
 class BasicServer {
 private:
     sockaddr_in _serverAddress;
     int _listenerSocket;
     const char* _ipStr;
+    pthread_t _handlerThread;
 
     const sockaddr* ServerSockaddr() const {
         return reinterpret_cast<const sockaddr*>(&_serverAddress);
@@ -19,7 +24,7 @@ private:
 
 public:
     BasicServer(const char* ipAddressStr, const uint16_t port)
-        : _serverAddress(), _listenerSocket(-1), _ipStr(ipAddressStr)
+        : _serverAddress(), _listenerSocket(-1), _ipStr(ipAddressStr), _handlerThread()
     {
         _serverAddress.sin_addr.s_addr = inet_addr(ipAddressStr);
         _serverAddress.sin_family = AF_INET;
@@ -42,7 +47,7 @@ public:
         _listenerSocket = -1;
     }
 
-    void HandleRequests(){
+    void HandleRequests() {
 
         char buffer[256];
 
@@ -72,4 +77,21 @@ public:
             }
         }
     }
+
+    void BeginHandlingRequests() {
+        TRYZ("Thread creation", pthread_create(&_handlerThread, NULL, _RunServerThread, this));
+    }
+
+    void EndHandlingRequests() {
+        TRYZ("Cancel thread", pthread_cancel(_handlerThread));
+        TRYZ("Join thread", pthread_join(_handlerThread, NULL));
+    }
 };
+
+void* _RunServerThread(void* arg) {
+
+    BasicServer* server = static_cast<BasicServer*>(arg);
+    server->HandleRequests();
+
+    return NULL;
+}
