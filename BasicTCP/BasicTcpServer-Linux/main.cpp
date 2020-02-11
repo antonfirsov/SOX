@@ -2,12 +2,12 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "BasicServer.hpp"
+#include "EpollServer.hpp"
 
 void DoStuff() {
     
-    BasicServer server("172.17.204.253", 11000);
-    server.CreateListenerSocket();
+    EpollServer server("172.17.204.253", 11000);
+    server.Initialize();
     //server.HandleRequests();
 
     server.BeginHandlingRequests();

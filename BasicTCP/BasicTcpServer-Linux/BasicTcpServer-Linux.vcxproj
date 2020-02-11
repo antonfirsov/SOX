@@ -88,6 +88,7 @@
   <ItemGroup>
     <ClInclude Include="BasicServer.hpp" />
     <ClInclude Include="Common.hpp" />
+    <ClInclude Include="EpollServer.hpp" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>

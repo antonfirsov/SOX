@@ -6,16 +6,20 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/epoll.h>
 
 #include <pthread.h>
 
 void* _RunServerThread(void* arg);
 
-class BasicServer {
+class EpollServer {
 private:
     sockaddr_in _serverAddress;
-    int _listenerSocket;
     const char* _ipStr;
+
+    int _listenerSocket;
+    int _epoll;
     pthread_t _handlerThread;
 
     const sockaddr* ServerSockaddr() const {
@@ -23,8 +27,8 @@ private:
     }
 
 public:
-    BasicServer(const char* ipAddressStr, const uint16_t port)
-        : _serverAddress(), _listenerSocket(-1), _ipStr(ipAddressStr), _handlerThread()
+    EpollServer(const char* ipAddressStr, const uint16_t port)
+        : _serverAddress(), _listenerSocket(-1), _epoll(-1), _ipStr(ipAddressStr), _handlerThread()
     {
         _serverAddress.sin_addr.s_addr = inet_addr(ipAddressStr);
         _serverAddress.sin_family = AF_INET;
@@ -32,6 +36,8 @@ public:
     }
 
     void Initialize() {
+        _epoll = epoll_create1(0);
+
         _listenerSocket = TRY("Socket creation",
             socket(AF_INET, SOCK_STREAM, 0)
             );
@@ -41,10 +47,12 @@ public:
         std::cout << "*** SERVER listening at " << _ipStr << " " << _serverAddress.sin_port << std::endl;
     }
 
-    ~BasicServer() {
+    ~EpollServer() {
         if (_listenerSocket == -1) return;
         TRY("Close socket", close(_listenerSocket));
-        _listenerSocket = -1;
+
+        if (_epoll == -1) return;
+        close(_epoll);
     }
 
     void HandleRequests() {
@@ -90,7 +98,7 @@ public:
 
 void* _RunServerThread(void* arg) {
 
-    BasicServer* server = static_cast<BasicServer*>(arg);
+    EpollServer* server = static_cast<EpollServer*>(arg);
     server->HandleRequests();
 
     return NULL;
