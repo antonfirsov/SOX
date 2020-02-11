@@ -20,11 +20,13 @@ namespace Client
             return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("172"));
         }
 
+        private static IPAddress GetRemoteIP() => IPAddress.Parse("172.17.204.253");
+
         public void Run()
         {
             Console.WriteLine("********* CLIENT *********");
 
-            IPAddress ipAddress = GetOwnIP();
+            IPAddress ipAddress = GetRemoteIP(); /* GetOwnIP();*/
             IPEndPoint remoteEndpoint = new IPEndPoint(ipAddress, ServerPort);
 
             using Socket sender = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);

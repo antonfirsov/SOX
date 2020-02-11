@@ -22,8 +22,6 @@ namespace Server
             return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("172"));
         }
 
-        private static IPAddress GetRemoteIP() => IPAddress.Parse("")
-
         public async Task RunAsync()
         {
             Console.WriteLine("********* SERVER *********");

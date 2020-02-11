@@ -5,9 +5,10 @@
 #include "BasicServer.hpp"
 
 void DoStuff() {
+    
     BasicServer server("172.17.204.253", 11000);
     server.CreateListenerSocket();
-
+    server.HandleRequests();
 }
 
 int main()
