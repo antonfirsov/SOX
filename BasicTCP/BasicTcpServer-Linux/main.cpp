@@ -13,7 +13,7 @@ void DoStuff() {
     server.BeginHandlingRequests();
 
     PressEnter2("abort server");
-    std::cout << " aborting... ";
+    std::cout << " aborting... " << std::endl;
     server.EndHandlingRequests();
     std::cout << "DONE." << std::endl;
 }

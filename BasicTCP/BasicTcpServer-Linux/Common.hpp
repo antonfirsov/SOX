@@ -51,3 +51,13 @@ void TryStuffExpectZero(const char* opName, F&& lambda) {
 
 #define TRY( operation ) TryStuff( #operation , [&]() { return operation; })
 #define TRYZ( operation ) TryStuffExpectZero( #operation, [&]() { return operation; })
+
+
+template<typename T, typename C>
+void _AppendFlagIfSet(std::basic_ostream<char>& ss, const T& flagSet, const C& checkFlag, const char* flagName) {
+    if ((flagSet & checkFlag) == checkFlag) {
+        ss << " | " << flagName;
+    }
+}
+
+#define APPEND_FLAG( ss, flagSet, checkFlag ) _AppendFlagIfSet(ss, flagSet, checkFlag, #checkFlag )

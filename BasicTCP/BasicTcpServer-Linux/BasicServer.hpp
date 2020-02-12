@@ -118,7 +118,7 @@ public:
         TRYZ(pthread_create(&_handlerThread, NULL, _RunServerThread, this));
     }
 
-    void EndHandlingRequests() {
+    virtual void EndHandlingRequests() {
         close(_listenerSocket);
 
         TRYZ(pthread_cancel(_handlerThread));
