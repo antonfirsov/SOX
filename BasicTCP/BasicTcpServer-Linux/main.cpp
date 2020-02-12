@@ -6,7 +6,7 @@
 
 void DoStuff() {
     
-    EpollServer server(AF_INET6, "fe80::ec50:fb40:898f:3795", 11000);
+    BasicServer server(AF_INET, "172.17.204.245", 11000);
     server.Initialize();
     //server.HandleRequests();
 
@@ -17,6 +17,7 @@ void DoStuff() {
     server.EndHandlingRequests();
     std::cout << "DONE." << std::endl;
 }
+
 
 int main()
 {

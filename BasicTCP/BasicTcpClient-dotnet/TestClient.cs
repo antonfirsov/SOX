@@ -20,7 +20,9 @@ namespace Client
             return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("172"));
         }
 
-        private static IPAddress GetRemoteIP() => IPAddress.Parse("fe80::ec50:fb40:898f:3795");
+        private static IPAddress GetRemoteIP() => IPAddress.Parse("172.17.204.245");
+
+        //private static IPAddress GetRemoteIP() => IPAddress.Parse("fe80::ec50:fb40:898f:3795");
 
         public void Run()
         {
@@ -30,6 +32,9 @@ namespace Client
             IPEndPoint remoteEndpoint = new IPEndPoint(ipAddress, ServerPort);
 
             using Socket sender = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            Console.WriteLine("Press ENTER to connect ...");
+            Console.ReadLine();
 
             sender.Connect(remoteEndpoint);
 

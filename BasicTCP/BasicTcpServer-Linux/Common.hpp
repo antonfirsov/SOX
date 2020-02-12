@@ -13,16 +13,24 @@ void PressEnter2(const char* opName) {
 template<typename F>
 auto TryStuff(const char* opName, F&& lambda) -> decltype(lambda()) {
     auto fd = lambda();
-    if (fd < 0) throw std::runtime_error(opName + std::string(" failed!"));
+    if (fd < 0) {
+        int err = errno;
+        std::stringstream ss;
+        ss << opName << " failed! errno: " << err;
+        throw std::runtime_error(ss.str());
+    }
     return fd;
 }
 
 template<typename F>
 void TryStuffExpectZero(const char* opName, F&& lambda) {
     int err = lambda();
-    std::stringstream ss;
-    ss << opName << " failed! Error code: " << err;
-    if (err != 0) throw std::runtime_error(ss.str());
+
+    if (err != 0) {
+        std::stringstream ss;
+        ss << opName << " failed! Error code: " << err;
+        throw std::runtime_error(ss.str());
+    }
 }
 
 #define TRY( operation ) TryStuff( #operation , [&]() { return operation; })

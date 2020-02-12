@@ -12,46 +12,80 @@
 void* _RunServerThread(void* arg);
 
 class BasicServer {
-private:
-    sockaddr_in _serverAddress;
+protected:
+    sa_family_t _addressFamily;
+    sockaddr _sockaddr;
+
     int _listenerSocket;
     const char* _ipStr;
+    const uint16_t _port;
     pthread_t _handlerThread;
 
-    const sockaddr* ServerSockaddr() const {
-        return reinterpret_cast<const sockaddr*>(&_serverAddress);
+    sockaddr_in& Sockaddr4() {
+        return reinterpret_cast<sockaddr_in&>(_sockaddr);
+    }
+
+    sockaddr_in6& Sockaddr6() {
+        return reinterpret_cast<sockaddr_in6&>(_sockaddr);
+    }
+
+    const socklen_t AddrLen() const {
+        return _addressFamily == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
     }
 
 public:
-    BasicServer(sa_family_t addressFamily, const char* ipAddressStr, const uint16_t port)
-        : _serverAddress(), _listenerSocket(-1), _ipStr(ipAddressStr), _handlerThread()
+
+    const int MAX_PENDING = 10;
+
+    BasicServer(sa_family_t addressFamily, const char* ipAddressStr, const uint16_t port, uint32_t ipv6ScopeId = 0) : 
+        _addressFamily(addressFamily), 
+        _sockaddr(), 
+        _listenerSocket(-1), 
+        _ipStr(ipAddressStr),
+        _port(port),
+        _handlerThread()
     {
-        _serverAddress.sin_addr.s_addr = inet_addr(ipAddressStr);
-        _serverAddress.sin_family = addressFamily;
-        _serverAddress.sin_port = htons(port); // little (x86-x64) -> big (tcpip)
+        if (addressFamily == AF_INET) {
+            sockaddr_in& a = Sockaddr4();
+            
+            a.sin_family = AF_INET;
+            a.sin_addr.s_addr = inet_addr(ipAddressStr);
+            a.sin_port = htons(port); // little (x86-x64) -> big (tcpip)
+        }
+        else if (addressFamily == AF_INET6) {
+            sockaddr_in6& a = Sockaddr6();
+            a.sin6_family = AF_INET6;
+            TRY(inet_pton(AF_INET6, ipAddressStr, &a.sin6_addr));
+            a.sin6_port = htons(port);
+            //a.sin6_scope_id = ipv6ScopeId;
+        }
+        else {
+            throw new std::runtime_error("Invalid address family!");
+        }   
     }
 
-    void Initialize() {
-        _listenerSocket = TRY(socket(AF_INET, SOCK_STREAM, 0));
-        TRY(bind(_listenerSocket, ServerSockaddr(), sizeof(_serverAddress)));
-        TRY(listen(_listenerSocket, 10));
+    virtual void Initialize() {
+        _listenerSocket = TRY(socket(_addressFamily, SOCK_STREAM, IPPROTO_TCP));
+        TRY(bind(_listenerSocket, &_sockaddr, AddrLen()));
+        TRY(listen(_listenerSocket, MAX_PENDING));
 
-        std::cout << "*** SERVER listening at " << _ipStr << " " << _serverAddress.sin_port << std::endl;
+        std::cout << "*** SERVER listening at " << _ipStr << " " << _port << std::endl;
     }
 
-    ~BasicServer() {
+    virtual ~BasicServer() {
         if (_listenerSocket == -1) return;
         close(_listenerSocket);
     }
 
-    void HandleRequests() {
+    virtual void HandleRequests() {
 
         char buffer[256];
 
         while (true) {
-            std::cout << "Waiting for connection ... ";
+            std::cout << "Waiting for connection ... " << std::flush;
 
             int handlerSocket = TRY(accept(_listenerSocket, NULL, NULL));
+            std::cout << " connected." << std::endl;
 
             std::string message;
 

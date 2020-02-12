@@ -1,53 +1,25 @@
 #pragma once
 
-#include "Common.hpp"
+#include "BasicServer.hpp"
 
-#include <cstdlib>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
 #include <sys/epoll.h>
 
-#include <pthread.h>
-
-void* _RunServerThread(void* arg);
-
-class EpollServer {
+class EpollServer : public BasicServer
+{
     static const int BUFFER_SIZE = 512;
     static const int MAX_EPOLL_EVENTS = 64;
-
-    sockaddr_in _serverAddress;
-    const char* _ipStr;
-
-    int _listenerSocket;
-    
-    pthread_t _handlerThread;
 
     int _epoll;
     epoll_event _events[MAX_EPOLL_EVENTS];
 
-    const sockaddr* ServerSockaddr() const {
-        return reinterpret_cast<const sockaddr*>(&_serverAddress);
-    }
-
 public:
-    EpollServer(sa_family_t addressFamily, const char* ipAddressStr, const uint16_t port) : 
-        _serverAddress(),
-        _listenerSocket(-1),
-        _ipStr(ipAddressStr),
-        _handlerThread(),
-        _epoll(-1)
+    EpollServer(sa_family_t addressFamily, const char* ipAddressStr, const uint16_t port, uint32_t ipv6ScopeId = 0)
+        : BasicServer(addressFamily, ipAddressStr, port, ipv6ScopeId), _epoll(-1), _events()
     {
-        _serverAddress.sin_addr.s_addr = inet_addr(ipAddressStr);
-        _serverAddress.sin_family = addressFamily;
-        _serverAddress.sin_port = htons(port); // little (x86-x64) -> big (tcpip)
     }
 
-    void Initialize() {
-        _listenerSocket = TRY(socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0));
-        TRY(bind(_listenerSocket, ServerSockaddr(), sizeof(_serverAddress)));
-        TRY(listen(_listenerSocket, 10));
+    void Initialize() override {
+        BasicServer::Initialize();
 
         _epoll = TRY(epoll_create1(0));
 
@@ -55,19 +27,15 @@ public:
         evt.data.fd = _listenerSocket;
         evt.events = EPOLLIN/* | EPOLLET*/;
         TRYZ(epoll_ctl(_epoll, EPOLL_CTL_ADD, _listenerSocket, &evt));
-
-        std::cout << "*** SERVER listening at " << _ipStr << " " << _serverAddress.sin_port << std::endl;
     }
 
-    ~EpollServer() {
-        if (_listenerSocket == -1) return;
-        close(_listenerSocket);
+    ~EpollServer() override {
+        if (_epoll != -1) close(_epoll);
 
-        if (_epoll == -1) return;
-        close(_epoll);
+        BasicServer::~BasicServer();
     }
 
-    void HandleRequests() {
+    void HandleRequests() override {
 
         char buffer[BUFFER_SIZE];
 
@@ -75,8 +43,6 @@ public:
 
         while (true) {
             std::cout << "Waiting for connection ... ";
-
-            //int handlerSocket = TRY("Accept", accept(_listenerSocket, NULL, NULL));
 
             int eventNo = TRY(epoll_wait(_epoll, _events, MAX_EPOLL_EVENTS, -1));
 
@@ -126,10 +92,3 @@ public:
     }
 };
 
-void* _RunServerThread(void* arg) {
-
-    EpollServer* server = static_cast<EpollServer*>(arg);
-    server->HandleRequests();
-
-    return NULL;
-}
