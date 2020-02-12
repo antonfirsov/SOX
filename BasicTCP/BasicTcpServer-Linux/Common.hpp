@@ -4,6 +4,26 @@
 #include <cstring>
 #include <sstream> 
 
+class OsError : public std::runtime_error {
+    int _errorCode;
+    
+    static const std::string GetMessage(const char* opName, int errorCode) {
+        std::stringstream ss;
+        ss << opName << " failed! return val / errno: " << errorCode;
+        return ss.str();
+    }
+
+public:
+    OsError(const char* opName, int errorCode)
+        : std::runtime_error(GetMessage(opName, errorCode)), _errorCode(errorCode)
+    {
+    }
+
+    const int ErrorCode() const {
+        return _errorCode;
+    }
+};
+
 void PressEnter2(const char* opName) {
     std::cout << "Press Enter to " << opName << '!' << std::endl;
     char dummy[128];
@@ -15,9 +35,7 @@ auto TryStuff(const char* opName, F&& lambda) -> decltype(lambda()) {
     auto fd = lambda();
     if (fd < 0) {
         int err = errno;
-        std::stringstream ss;
-        ss << opName << " failed! errno: " << err;
-        throw std::runtime_error(ss.str());
+        throw OsError(opName, err);
     }
     return fd;
 }
@@ -27,9 +45,7 @@ void TryStuffExpectZero(const char* opName, F&& lambda) {
     int err = lambda();
 
     if (err != 0) {
-        std::stringstream ss;
-        ss << opName << " failed! Error code: " << err;
-        throw std::runtime_error(ss.str());
+        throw OsError(opName, err);
     }
 }
 

@@ -91,6 +91,8 @@ public:
 
             while (true) {
                 long count = TRY(recv(handlerSocket, buffer, 256, 0));
+                
+
                 auto part = std::string(buffer, static_cast<size_t>(count));
                 message += part;
                 if (part[part.length() - 1] == '.') {
@@ -99,7 +101,10 @@ public:
 
                     std::cout << "RECEIVED: " << message << std::endl;
 
-                    if (part == "exit.") break;
+                    if (part == "exit.") {
+                        TRYZ(close(handlerSocket));
+                        break;
+                    }
 
                     message += "!!!";
                     TRY(send(handlerSocket, message.c_str(), message.length(), 0));
@@ -114,6 +119,8 @@ public:
     }
 
     void EndHandlingRequests() {
+        close(_listenerSocket);
+
         TRYZ(pthread_cancel(_handlerThread));
         TRYZ(pthread_join(_handlerThread, NULL));
     }
