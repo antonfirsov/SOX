@@ -25,5 +25,5 @@ void TryStuffExpectZero(const char* opName, F&& lambda) {
     if (err != 0) throw std::runtime_error(ss.str());
 }
 
-#define TRY( opName, operation ) TryStuff(opName, [&]() { return operation; })
-#define TRYZ( opName, operation ) TryStuffExpectZero(opName, [&]() { return operation; })
+#define TRY( operation ) TryStuff( #operation , [&]() { return operation; })
+#define TRYZ( operation ) TryStuffExpectZero( #operation, [&]() { return operation; })

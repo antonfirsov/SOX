@@ -52,8 +52,7 @@ public:
 
     ~Client() {
         if (_socket == -1) return;
-        TRY("Close socket", close(_socket));
-        _socket = -1;
+        close(_socket);
     }
 
     void DoSmalltalk() {

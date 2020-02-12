@@ -23,28 +23,25 @@ private:
     }
 
 public:
-    BasicServer(const char* ipAddressStr, const uint16_t port)
+    BasicServer(sa_family_t addressFamily, const char* ipAddressStr, const uint16_t port)
         : _serverAddress(), _listenerSocket(-1), _ipStr(ipAddressStr), _handlerThread()
     {
         _serverAddress.sin_addr.s_addr = inet_addr(ipAddressStr);
-        _serverAddress.sin_family = AF_INET;
+        _serverAddress.sin_family = addressFamily;
         _serverAddress.sin_port = htons(port); // little (x86-x64) -> big (tcpip)
     }
 
     void Initialize() {
-        _listenerSocket = TRY("Socket creation",
-            socket(AF_INET, SOCK_STREAM, 0)
-            );
-        TRY("Bind", bind(_listenerSocket, ServerSockaddr(), sizeof(_serverAddress)));
-        TRY("Listen", listen(_listenerSocket, 10));
+        _listenerSocket = TRY(socket(AF_INET, SOCK_STREAM, 0));
+        TRY(bind(_listenerSocket, ServerSockaddr(), sizeof(_serverAddress)));
+        TRY(listen(_listenerSocket, 10));
 
         std::cout << "*** SERVER listening at " << _ipStr << " " << _serverAddress.sin_port << std::endl;
     }
 
     ~BasicServer() {
         if (_listenerSocket == -1) return;
-        TRY("Close socket", close(_listenerSocket));
-        _listenerSocket = -1;
+        close(_listenerSocket);
     }
 
     void HandleRequests() {
@@ -54,12 +51,12 @@ public:
         while (true) {
             std::cout << "Waiting for connection ... ";
 
-            int handlerSocket = TRY("Accept", accept(_listenerSocket, NULL, NULL));
+            int handlerSocket = TRY(accept(_listenerSocket, NULL, NULL));
 
             std::string message;
 
             while (true) {
-                long count = TRY("recv", recv(handlerSocket, buffer, 256, 0));
+                long count = TRY(recv(handlerSocket, buffer, 256, 0));
                 auto part = std::string(buffer, static_cast<size_t>(count));
                 message += part;
                 if (part[part.length() - 1] == '.') {
@@ -71,7 +68,7 @@ public:
                     if (part == "exit.") break;
 
                     message += "!!!";
-                    TRY("Send echo", send(handlerSocket, message.c_str(), message.length(), 0));
+                    TRY(send(handlerSocket, message.c_str(), message.length(), 0));
                     message.clear();
                 }
             }
@@ -79,12 +76,12 @@ public:
     }
 
     void BeginHandlingRequests() {
-        TRYZ("Thread creation", pthread_create(&_handlerThread, NULL, _RunServerThread, this));
+        TRYZ(pthread_create(&_handlerThread, NULL, _RunServerThread, this));
     }
 
     void EndHandlingRequests() {
-        TRYZ("Cancel thread", pthread_cancel(_handlerThread));
-        TRYZ("Join thread", pthread_join(_handlerThread, NULL));
+        TRYZ(pthread_cancel(_handlerThread));
+        TRYZ(pthread_join(_handlerThread, NULL));
     }
 };
 

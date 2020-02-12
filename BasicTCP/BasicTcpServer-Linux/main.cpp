@@ -6,7 +6,7 @@
 
 void DoStuff() {
     
-    EpollServer server("172.17.204.253", 11000);
+    EpollServer server(AF_INET6, "fe80::ec50:fb40:898f:3795", 11000);
     server.Initialize();
     //server.HandleRequests();
 

@@ -20,7 +20,7 @@ namespace Client
             return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("172"));
         }
 
-        private static IPAddress GetRemoteIP() => IPAddress.Parse("172.17.204.253");
+        private static IPAddress GetRemoteIP() => IPAddress.Parse("fe80::ec50:fb40:898f:3795");
 
         public void Run()
         {
