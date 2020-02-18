@@ -38,7 +38,7 @@ public:
         _serverAddress.sin_port = htons(port); // little (x86-x64) -> big (tcpip)
     }
 
-    void CreateSocket() {
+    void Initialize() {
         _socket = TRY("Socket creation",
             socket(AF_INET, SOCK_STREAM, 0)
             );

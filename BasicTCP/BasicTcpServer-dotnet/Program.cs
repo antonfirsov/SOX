@@ -14,7 +14,7 @@ namespace Server
             try
             {
                 using var server = new TestServer();
-                server.RunAsync();
+                await server.RunAsync();
             }
             catch (Exception ex)
             {
