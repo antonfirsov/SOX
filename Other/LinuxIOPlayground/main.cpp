@@ -36,6 +36,9 @@ void HelloUring() {
 
     int fd = TRY(open("./lol.baz", O_RDONLY));
 
+    TRY(io_uring_register_files(&ring, &fd, 1));
+    
+
     char msg1[32] = { };
     char msg2[32] = { };
 
@@ -44,6 +47,8 @@ void HelloUring() {
         {.iov_base = (void*)msg1, .iov_len = sizeof(msg1) - 1 },
         {.iov_base = (void*)msg2, .iov_len = sizeof(msg2) - 1 },
     };
+
+    TRY(io_uring_register_buffers(&ring, bufs, 2));
 
     io_uring_sqe* sqe = io_uring_get_sqe(&ring);
     io_uring_prep_rw(IORING_OP_READV, sqe, fd, bufs, 1, 0);
@@ -58,6 +63,10 @@ void HelloUring() {
     
 
     io_uring_cqe_seen(&ring, cqe);
+
+    TRY(io_uring_unregister_buffers(&ring));
+    TRY(io_uring_unregister_files(&ring));
+
     TRY(close(fd));
     io_uring_queue_exit(&ring);
 }
