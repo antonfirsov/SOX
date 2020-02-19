@@ -35,7 +35,9 @@ protected:
 
 public:
 
-    const int MAX_PENDING = 10;
+    static const int MAX_PENDING = 64;
+
+    static const size_t MAX_MESSAGE = 256;
 
     BasicServer(sa_family_t addressFamily, const char* ipAddressStr, const uint16_t port, uint32_t ipv6ScopeId = 0) : 
         _addressFamily(addressFamily), 
@@ -79,7 +81,7 @@ public:
 
     virtual void HandleRequests() {
 
-        char buffer[256];
+        char buffer[MAX_MESSAGE];
 
         while (true) {
             std::cout << "Waiting for connection ... " << std::flush;
@@ -90,7 +92,7 @@ public:
             std::string message;
 
             while (true) {
-                long count = TRY(recv(handlerSocket, buffer, 256, 0));
+                long count = TRY(recv(handlerSocket, buffer, MAX_MESSAGE, 0));
                 
 
                 auto part = std::string(buffer, static_cast<size_t>(count));

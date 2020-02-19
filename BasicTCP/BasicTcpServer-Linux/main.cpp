@@ -1,20 +1,21 @@
 #include <iostream> 
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 
-#include "EpollServer.hpp"
+//#include "EpollServer.hpp"
+#include "UringServer.hpp"
 
 void DoStuff() {
     
-    EpollServer server(AF_INET, "172.17.204.245", 11000);
-    server.Initialize();
-    //server.HandleRequests();
-
-    server.BeginHandlingRequests();
+    std::unique_ptr<UringServer> server = std::make_unique<UringServer>(AF_INET, "172.17.99.105", 11002);
+    server->Initialize();
+    server->BeginHandlingRequests();
+    //server->HandleRequests();
 
     PressEnter2("abort server");
     std::cout << " aborting... " << std::endl;
-    server.EndHandlingRequests();
+    server->EndHandlingRequests();
     std::cout << "DONE." << std::endl;
 }
 

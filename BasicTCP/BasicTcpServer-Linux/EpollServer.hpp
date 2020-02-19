@@ -65,7 +65,7 @@ public:
         evt.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
         TRYZ(epoll_ctl(_epoll, EPOLL_CTL_ADD, _listenerSocket, &evt));
 
-        _abortEvt = eventfd(0, 0);
+        _abortEvt = TRY(eventfd(0, 0));
         evt.data.fd = _abortEvt;
         evt.events = EPOLLIN | EPOLLET;
         TRYZ(epoll_ctl(_epoll, EPOLL_CTL_ADD, _abortEvt, &evt));
@@ -152,7 +152,6 @@ public:
             }
         }
     }
-
 
     void EndHandlingRequests() override {
         std::cout << "sending abort event" << std::endl;

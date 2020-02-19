@@ -41,6 +41,15 @@ auto TryStuff(const char* opName, F&& lambda) -> decltype(lambda()) {
 }
 
 template<typename F>
+auto TryStuffExpectNegativeErrorCode(const char* opName, F&& lambda) -> decltype(lambda()) {
+    auto fd = lambda();
+    if (fd < 0) {
+        throw OsError(opName, -err);
+    }
+    return fd;
+}
+
+template<typename F>
 void TryStuffExpectZero(const char* opName, F&& lambda) {
     int err = lambda();
 
@@ -50,6 +59,7 @@ void TryStuffExpectZero(const char* opName, F&& lambda) {
 }
 
 #define TRY( operation ) TryStuff( #operation , [&]() { return operation; })
+#define TRYNE( operation ) TryStuffExpectNegativeErrorCode( #operation , [&]() { return operation; })
 #define TRYZ( operation ) TryStuffExpectZero( #operation, [&]() { return operation; })
 
 

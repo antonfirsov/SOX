@@ -6,7 +6,7 @@
 
 class OsError : public std::runtime_error {
     int _errorCode;
-    
+
     static const std::string GetMessage(const char* opName, int errorCode) {
         std::stringstream ss;
         ss << opName << " failed! return val / errno: " << errorCode;
@@ -32,12 +32,21 @@ void PressEnter2(const char* opName) {
 
 template<typename F>
 auto TryStuff(const char* opName, F&& lambda) -> decltype(lambda()) {
-    auto fd = lambda();
-    if (fd < 0) {
+    auto result = lambda();
+    if (result < 0) {
         int err = errno;
         throw OsError(opName, err);
     }
-    return fd;
+    return result;
+}
+
+template<typename F>
+auto TryStuffExpectNegativeErrorCode(const char* opName, F&& lambda) -> decltype(lambda()) {
+    auto result = lambda();
+    if (result < 0) {
+        throw OsError(opName, -result);
+    }
+    return result;
 }
 
 template<typename F>
@@ -50,6 +59,7 @@ void TryStuffExpectZero(const char* opName, F&& lambda) {
 }
 
 #define TRY( operation ) TryStuff( #operation , [&]() { return operation; })
+#define TRYNE( operation ) TryStuffExpectNegativeErrorCode( #operation , [&]() { return operation; })
 #define TRYZ( operation ) TryStuffExpectZero( #operation, [&]() { return operation; })
 
 
@@ -61,3 +71,10 @@ void _AppendFlagIfSet(std::basic_ostream<char>& ss, const T& flagSet, const C& c
 }
 
 #define APPEND_FLAG( ss, flagSet, checkFlag ) _AppendFlagIfSet(ss, flagSet, checkFlag, #checkFlag )
+
+template <typename TUnaryFunction>
+void ThrowRuntimeError(TUnaryFunction&& f) {
+    std::stringstream ss;
+    f(ss);
+    throw std::runtime_error(ss.str());
+}

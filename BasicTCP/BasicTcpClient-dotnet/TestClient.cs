@@ -10,7 +10,7 @@ namespace Client
     {
         private byte[] _buffer = new byte[1024];
         private StringBuilder _bld = new StringBuilder();
-        private const int ServerPort = 11000;
+        private const int ServerPort = 11002;
 
         private static IPAddress GetOwnIP()
         {
@@ -20,7 +20,7 @@ namespace Client
             return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("172"));
         }
 
-        private static IPAddress GetRemoteIP() => IPAddress.Parse("172.17.204.245");
+        private static IPAddress GetRemoteIP() => IPAddress.Parse("172.17.99.105");
 
         //private static IPAddress GetRemoteIP() => IPAddress.Parse("fe80::ec50:fb40:898f:3795");
 

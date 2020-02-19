@@ -30,9 +30,12 @@ void DoVectoredIo() {
 const int RING_ENTRY_COUNT = 128;
 
 void HelloUring() {
-    io_uring ring;
+    io_uring ring = { };
+    io_uring_params ringParams = { };
+    
+    TRY(io_uring_queue_init_params(RING_ENTRY_COUNT, &ring, &ringParams));
 
-    TRY(io_uring_queue_init(RING_ENTRY_COUNT, &ring, 0));
+    std::cout << "ringParams.sq_entries: " << ringParams.sq_entries << std::endl;
 
     int fd = TRY(open("./lol.baz", O_RDONLY));
 
