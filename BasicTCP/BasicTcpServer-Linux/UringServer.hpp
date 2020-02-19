@@ -10,20 +10,27 @@
 enum class Operation {
     POLL_LISTENER,
     ACCEPT,
+    POLL_HANDLER,
     READ,
     WRITE,
-    ABORT
+
+    POLL_ABORT
 };
 
 struct CompletionInfo {
     int fd;
     Operation operation;
     iovec iov;
+    msghdr msg;
     char buffer[BasicServer::MAX_MESSAGE];
 
     CompletionInfo() :
         fd(-1),
-        iov { .iov_base = buffer, .iov_len = BasicServer::MAX_MESSAGE }
+        iov { .iov_base = buffer, .iov_len = BasicServer::MAX_MESSAGE },
+        msg {
+            .msg_iov = &iov,
+            .msg_iovlen = 1,
+        }
     {
     }
 };
@@ -32,7 +39,7 @@ class SubmissionInfo {
     const int _fd;
     io_uring_sqe* _sqe;
     CompletionInfo* _completion;
-
+    
     void SetupCompletionData(Operation operation) {
         io_uring_sqe_set_data(_sqe, _completion);
         _completion->operation = operation;
@@ -57,7 +64,12 @@ public:
     }
 
     void PrepareReceive() {
-        
+        msghdr& msg = _completion->msg;
+        msg.msg_name = nullptr;
+        msg.msg_namelen = 0;
+
+        io_uring_prep_recvmsg(_sqe, _fd, &msg, 0);
+        SetupCompletionData(Operation::READ);
     }
 };
 
@@ -77,9 +89,9 @@ private:
 
     static CompletionInfo* GetCompletionInfo(io_uring_cqe* cqe) {
         void* data = io_uring_cqe_get_data(cqe);
-        /*if (data == nullptr) {
+        if (data == nullptr) {
             throw std::runtime_error("User Data is null!");
-        }*/
+        }
         return reinterpret_cast<CompletionInfo*>(data);
     }
 
@@ -88,6 +100,59 @@ private:
         CompletionInfo* c = &_completionData[fd];
         c->fd = fd;
         return SubmissionInfo(fd, sqe, c);
+    }
+
+    bool ProcessCompletion(CompletionInfo* c, io_uring_cqe* cqe) {
+        switch (c->operation) {
+            case Operation::POLL_ABORT: {
+                ASSERT(c->fd == _abortEvt);
+                std::cout << "Abortion evt signaled, terminating" << std::endl;
+                return false;
+            }    
+            case Operation::ACCEPT: {
+                ASSERT(c->fd == _listenerSocket);
+                int handlerSocket = cqe->res;
+                if (handlerSocket < 0) {
+                    throw std::runtime_error("Accept failed!");
+                }
+                std::cout << "accepted handler " << handlerSocket << std::endl;
+
+                CreateSubmission(_listenerSocket).PrepareAccept();
+                CreateSubmission(handlerSocket).PreparePoll(Operation::POLL_HANDLER);
+
+                break;
+            }
+            case Operation::POLL_HANDLER: {
+                if (cqe->res >= 0) {
+                    std::cout << "Got something on " << c->fd << std::endl;
+                    CreateSubmission(c->fd).PrepareReceive();
+                }
+                else {
+                    std::cout << -cqe->res << "," << std::flush;
+                }
+
+                break;
+            }
+            case Operation::READ: {
+                if (cqe->res >= 0) {
+                    std::cout << "Received " << cqe->res << "bytes on " << c->fd << std::endl;
+                    CreateSubmission(c->fd).PreparePoll(Operation::POLL_HANDLER);
+                }
+                else {
+                    std::cout << -cqe->res << "." << std::flush;
+                }
+
+                break;
+            }
+            case Operation::WRITE: {
+                break;
+            }
+            default: {
+                std::cout << "Unexpected operation" << std::endl;
+                break;
+            }
+        }
+        return true;
     }
 
 public:
@@ -106,7 +171,7 @@ public:
         BasicServer::Initialize();
 
         _abortEvt = TRY(eventfd(0, 0));
-        CreateSubmission(_abortEvt).PreparePoll(Operation::ABORT);
+        CreateSubmission(_abortEvt).PreparePoll(Operation::POLL_ABORT);
         CreateSubmission(_listenerSocket).PrepareAccept();
     }
 
@@ -128,46 +193,7 @@ public:
 
             CompletionInfo* c = GetCompletionInfo(cqe);
 
-            if (c == nullptr) {
-                std::cout << "user_data is fucking null" << std::endl;
-                io_uring_cq_advance(&_ring, 1);
-                continue;
-            }
-
-            if (c->operation == Operation::ABORT) {
-                std::cout << "Abortion evt signaled, terminating" << std::endl;
-                return;
-            }
-            else if (c->fd == _listenerSocket) {
-                if (c->operation == Operation::POLL_LISTENER) {
-                    std::cout << "accept polled" << std::endl;
-
-                    CreateSubmission(_listenerSocket).PrepareAccept();
-                }
-                else if (c->operation == Operation::ACCEPT) {
-                   int handlerSocket = cqe->res;
-                   if (handlerSocket < 0) {
-                       throw std::runtime_error("Accept failed!");
-                   }
-                   std::cout << "accept received!" << std::endl;
-
-
-                   CreateSubmission(_listenerSocket).PrepareAccept();
-                   //CreateSubmission(handlerSocket).PrepareReceive();
-                }
-                else {
-                    std::cout << "Unexpected operation on listener socket! " << std::endl;
-                }
-            }
-            else {
-                if (c->operation == Operation::READ) {
-                    std::cout << "Received some data on " << c->fd << std::endl;
-                    
-                }
-                else {
-                    std::cout << "Unexpected operation on handler socket " << c->fd << std::endl;
-                }
-            }
+            if (!ProcessCompletion(c, cqe)) return;
 
             io_uring_cq_advance(&_ring, 1);
         }

@@ -78,3 +78,9 @@ void ThrowRuntimeError(TUnaryFunction&& f) {
     f(ss);
     throw std::runtime_error(ss.str());
 }
+
+void Assert(bool condition, const char* errorMsg) {
+    if (!condition) throw std::runtime_error(errorMsg);
+}
+
+#define ASSERT( conditionExpr ) Assert(conditionExpr, #conditionExpr );
