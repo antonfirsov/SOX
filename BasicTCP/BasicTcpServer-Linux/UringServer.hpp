@@ -113,7 +113,7 @@ private:
         return SubmissionInfo(fd, sqe, c);
     }
 
-    bool ProcessCompletion(CompletionInfo* c, io_uring_cqe* cqe) {
+    bool ProcessCompletion(CompletionInfo* c, int result) {
         switch (c->operation) {
             case Operation::POLL_ABORT: {
                 ASSERT(c->fd == _abortEvt);
@@ -122,33 +122,30 @@ private:
             }    
             case Operation::ACCEPT: {
                 ASSERT(c->fd == _listenerSocket);
-                int handlerSocket = cqe->res;
-                if (handlerSocket < 0) {
+                if (result < 0) {
                     throw std::runtime_error("Accept failed!");
                 }
-                std::cout << "accepted handler " << handlerSocket << std::endl;
+                std::cout << "accepted handler " << result << std::endl;
 
                 CreateSubmission(_listenerSocket).PrepareAccept();
-                CreateSubmission(handlerSocket).PreparePoll(Operation::POLL_HANDLER);
+                CreateSubmission(result).PreparePoll(Operation::POLL_HANDLER);
 
                 break;
             }
             case Operation::POLL_HANDLER: {
-                if (cqe->res >= 0) {
+                if (result >= 0) {
                     // std::cout << "Got something on " << c->fd << std::endl;
                     CreateSubmission(c->fd).PrepareReceive();
                 }
                 else {
-                    std::cout << -cqe->res << "," << std::flush;
+                    std::cout << "Poll failed: " << -result << std::endl;
                 }
 
                 break;
             }
             case Operation::RECEIVE: {
-                int byteCount = cqe->res;
-                if (byteCount >= 0) {
-                    // std::cout << "Received " << cqe->res << "bytes on " << c->fd << std::endl;
-                    std::string_view s(c->buffer, byteCount);
+                if (result >= 0) {
+                    std::string_view s(c->buffer, result);
                     c->collector += s;
                     
                     if (s == "exit.") {
@@ -173,13 +170,13 @@ private:
                     }
                 }
                 else {
-                    std::cout << "Read failed:" << -cqe->res << std::endl;
+                    std::cout << "Read failed:" << -result << std::endl;
                 }
 
                 break;
             }
             case Operation::SEND: {
-                std::cout << "Data sent! " << cqe->res << std::endl;
+                // std::cout << "Data sent! " << result << std::endl;
                 CreateSubmission(c->fd).PreparePoll(Operation::POLL_HANDLER);
                 break;
             }
@@ -223,15 +220,14 @@ public:
         io_uring_cqe* cqe;
         
         while (true) {
-            
             TRYNE(io_uring_submit_and_wait(&_ring, 1)); // this is the only syscall
             TRYNE(io_uring_peek_cqe(&_ring, &cqe));
 
             CompletionInfo* c = GetCompletionInfo(cqe);
-
-            if (!ProcessCompletion(c, cqe)) return;
-
+            int result = cqe->res;
             io_uring_cq_advance(&_ring, 1);
+
+            if (!ProcessCompletion(c, result)) return;
         }
     }
 
