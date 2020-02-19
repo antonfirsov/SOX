@@ -3,7 +3,7 @@
 #include <liburing.h>
 #include <sys/poll.h>
 #include <sys/eventfd.h>
-
+#include <string_view>
 
 #include "BasicServer.hpp"
 
@@ -11,8 +11,8 @@ enum class Operation {
     POLL_LISTENER,
     ACCEPT,
     POLL_HANDLER,
-    READ,
-    WRITE,
+    RECEIVE,
+    SEND,
 
     POLL_ABORT
 };
@@ -23,6 +23,8 @@ struct CompletionInfo {
     iovec iov;
     msghdr msg;
     char buffer[BasicServer::MAX_MESSAGE];
+    
+    std::string collector;
 
     CompletionInfo() :
         fd(-1),
@@ -30,7 +32,8 @@ struct CompletionInfo {
         msg {
             .msg_iov = &iov,
             .msg_iovlen = 1,
-        }
+        },
+        collector()
     {
     }
 };
@@ -43,6 +46,13 @@ class SubmissionInfo {
     void SetupCompletionData(Operation operation) {
         io_uring_sqe_set_data(_sqe, _completion);
         _completion->operation = operation;
+    }
+
+    msghdr* GetMsg() {
+        msghdr& msg = _completion->msg;
+        msg.msg_name = nullptr;
+        msg.msg_namelen = 0;
+        return &msg;
     }
 
 public:  
@@ -64,12 +74,13 @@ public:
     }
 
     void PrepareReceive() {
-        msghdr& msg = _completion->msg;
-        msg.msg_name = nullptr;
-        msg.msg_namelen = 0;
+        io_uring_prep_recvmsg(_sqe, _fd, GetMsg(), 0);
+        SetupCompletionData(Operation::RECEIVE);
+    }
 
-        io_uring_prep_recvmsg(_sqe, _fd, &msg, 0);
-        SetupCompletionData(Operation::READ);
+    void PrepareSend() {
+        io_uring_prep_sendmsg(_sqe, _fd, GetMsg(), 0);
+        SetupCompletionData(Operation::SEND);
     }
 };
 
@@ -124,7 +135,7 @@ private:
             }
             case Operation::POLL_HANDLER: {
                 if (cqe->res >= 0) {
-                    std::cout << "Got something on " << c->fd << std::endl;
+                    // std::cout << "Got something on " << c->fd << std::endl;
                     CreateSubmission(c->fd).PrepareReceive();
                 }
                 else {
@@ -133,18 +144,43 @@ private:
 
                 break;
             }
-            case Operation::READ: {
-                if (cqe->res >= 0) {
-                    std::cout << "Received " << cqe->res << "bytes on " << c->fd << std::endl;
-                    CreateSubmission(c->fd).PreparePoll(Operation::POLL_HANDLER);
+            case Operation::RECEIVE: {
+                int byteCount = cqe->res;
+                if (byteCount >= 0) {
+                    // std::cout << "Received " << cqe->res << "bytes on " << c->fd << std::endl;
+                    std::string_view s(c->buffer, byteCount);
+                    c->collector += s;
+                    
+                    if (s == "exit.") {
+                        std::cout << "received exit signal, terminating " << std::endl;
+                        return false;
+                    }
+                    else if (s[s.length() - 1] == '.') {
+                        std::string& s = c->collector;
+                        s.resize(s.length() - 1);
+
+                        std::cout << "RECEIVED: " << s << std::endl;
+                        
+                        s += "!!!";
+                        s.copy(c->buffer, s.length());
+                        c->iov.iov_len = s.length();
+
+                        CreateSubmission(c->fd).PrepareSend();
+                        s.clear();
+                    }
+                    else {
+                        CreateSubmission(c->fd).PreparePoll(Operation::POLL_HANDLER);
+                    }
                 }
                 else {
-                    std::cout << -cqe->res << "." << std::flush;
+                    std::cout << "Read failed:" << -cqe->res << std::endl;
                 }
 
                 break;
             }
-            case Operation::WRITE: {
+            case Operation::SEND: {
+                std::cout << "Data sent! " << cqe->res << std::endl;
+                CreateSubmission(c->fd).PreparePoll(Operation::POLL_HANDLER);
                 break;
             }
             default: {
