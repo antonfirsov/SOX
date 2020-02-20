@@ -154,14 +154,13 @@ private:
                 std::cout << "accepted handler " << result << std::endl;
 
                 CreateSubmission(_listenerSocket).PrepareAccept();
-                CreateSubmission(result).PreparePoll(Operation::POLL_HANDLER);
+                SubmitLinkedPollRead(result);
 
                 break;
             }
             case Operation::POLL_HANDLER: {
                 if (result >= 0) {
-                    // std::cout << "Got something on " << c->fd << std::endl;
-                    CreateSubmission(c->fd).PrepareReceive();
+                    std::cout << "Got something on " << c->fd << std::endl;
                 }
                 else {
                     std::cout << "Poll failed: " << -result << std::endl;
@@ -194,7 +193,7 @@ private:
                         s.clear();
                     }
                     else {
-                        CreateSubmission(c->fd).PreparePoll(Operation::POLL_HANDLER);
+                        SubmitLinkedPollRead(c->fd);
                     }
                 }
                 else {
@@ -204,8 +203,7 @@ private:
                 break;
             }
             case Operation::SEND: {
-                // std::cout << "Data sent! " << result << std::endl;
-                CreateSubmission(c->fd).PreparePoll(Operation::POLL_HANDLER);
+                SubmitLinkedPollRead(c->fd);
                 break;
             }
             default: {
