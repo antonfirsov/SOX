@@ -63,24 +63,33 @@ public:
     {
     }
 
-    void PrepareAccept() {
+    SubmissionInfo& PrepareAccept() {
         io_uring_prep_accept(_sqe, _fd, NULL, NULL, SOCK_NONBLOCK);
         SetupCompletionData(Operation::ACCEPT);
+        return *this;
     }
 
-    void PreparePoll(Operation operation, short mask = POLLIN) {
+    SubmissionInfo& PreparePoll(Operation operation, short mask = POLLIN) {
         io_uring_prep_poll_add(_sqe, _fd, mask);
         SetupCompletionData(operation);
+        return *this;
     }
 
-    void PrepareReceive() {
+    SubmissionInfo& PrepareReceive() {
         io_uring_prep_recvmsg(_sqe, _fd, GetMsg(), 0);
         SetupCompletionData(Operation::RECEIVE);
+        return *this;
     }
 
-    void PrepareSend() {
+    SubmissionInfo& PrepareSend() {
         io_uring_prep_sendmsg(_sqe, _fd, GetMsg(), 0);
         SetupCompletionData(Operation::SEND);
+        return *this;
+    }
+
+    SubmissionInfo& AppendFlags(unsigned char flags) {
+        _sqe->flags |= flags;
+        return *this;
     }
 };
 
@@ -111,6 +120,11 @@ private:
         CompletionInfo* c = &_completionData[fd];
         c->fd = fd;
         return SubmissionInfo(fd, sqe, c);
+    }
+
+    void SubmitLinkedPollRead(int socket) {
+        CreateSubmission(socket).PreparePoll(Operation::POLL_HANDLER).AppendFlags(IOSQE_IO_LINK);
+        CreateSubmission(socket).PrepareReceive();
     }
 
     bool ProcessCompletion(CompletionInfo* c, int result) {

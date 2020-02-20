@@ -2,83 +2,115 @@
 #include <cstdlib>
 #include <iostream>
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
+#include <poll.h>
 #include <liburing.h>
 
-#include "Common.hpp"
-
-void DoVectoredIo() {
-    const char msg1[] = "lol";
-    const char msg2[] = "baz";
-
-    iovec bufs[] = {
-        {.iov_base = (void*)msg1, .iov_len = sizeof(msg1) - 1 },
-        {.iov_base = (void*)msg2, .iov_len = sizeof(msg2) - 1 },
-    };
-
-    int fd = TRY(open("./lol.baz", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IROTH));
-    TRY(writev(fd, bufs, 2));
-
-    TRYZ(close(fd));
+void Assert(bool condition, const char* operationStr) {
+    if (!condition) {
+        std::cout << "Failed: " << operationStr << " | Errno: " << errno << std::endl;
+        exit(1);
+    }
 }
 
-const int RING_ENTRY_COUNT = 128;
-
-void HelloUring() {
-    io_uring ring = { };
-    io_uring_params ringParams = { };
-    
-    TRY(io_uring_queue_init_params(RING_ENTRY_COUNT, &ring, &ringParams));
-
-    std::cout << "ringParams.sq_entries: " << ringParams.sq_entries << std::endl;
-
-    int fd = TRY(open("./lol.baz", O_RDONLY));
-
-    TRY(io_uring_register_files(&ring, &fd, 1));
-    
-
-    char msg1[32] = { };
-    char msg2[32] = { };
-
-
-    iovec bufs[] = {
-        {.iov_base = (void*)msg1, .iov_len = sizeof(msg1) - 1 },
-        {.iov_base = (void*)msg2, .iov_len = sizeof(msg2) - 1 },
-    };
-
-    TRY(io_uring_register_buffers(&ring, bufs, 2));
-
-    io_uring_sqe* sqe = io_uring_get_sqe(&ring);
-    io_uring_prep_rw(IORING_OP_READV, sqe, fd, bufs, 1, 0);
-    sqe->user_data = 42;
-    TRY(io_uring_submit(&ring));
-
-    io_uring_cqe* cqe;
-    TRY(io_uring_wait_cqe(&ring, &cqe));
-
-    std::cout << "UserData: " << cqe->user_data << "Result: " << cqe->res << std::endl;
-    std::cout << msg1 << std::endl;
-    
-
-    io_uring_cqe_seen(&ring, cqe);
-
-    TRY(io_uring_unregister_buffers(&ring));
-    TRY(io_uring_unregister_files(&ring));
-
-    TRY(close(fd));
-    io_uring_queue_exit(&ring);
+void Try(int result, const char* operationStr) {
+    if (result < 0) {
+        std::cout << "Failed: " << operationStr << " | Result: " << result << " Errno: " << errno << std::endl;
+        exit(1);
+    }
 }
+
+#define ASSERT( conditionExpr ) Assert(conditionExpr, #conditionExpr )
+#define TRY( operation ) Try( operation, #operation )
+
+const int SERVER_PORT = 11000;
 
 int main()
 {
-    DoVectoredIo();
-    HelloUring();
+    sockaddr_in listenerAddr {
+        .sin_family = AF_INET,
+        .sin_addr.s_addr = htonl(INADDR_LOOPBACK),
+        .sin_port = htons(SERVER_PORT),
+    };
+    sockaddr* listenerAddrPtr = (sockaddr*)&listenerAddr;
 
-    PressEnter2("Close");
+    int listener = socket(AF_INET, SOCK_STREAM, 0); ASSERT(listener != -1);
+    
+    TRY(bind(listener, (sockaddr*)&listenerAddr, sizeof(listenerAddr)));
+    TRY(listen(listener, 1));
+
+    sockaddr_in clientAddr {
+        .sin_family = AF_INET,
+        .sin_addr.s_addr = htonl(INADDR_LOOPBACK),
+        .sin_port = 0,
+    };
+    int client = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0); ASSERT(client != -1);
+    TRY(bind(client, (sockaddr*)&clientAddr, sizeof(clientAddr)));
+    TRY(fcntl(client, F_SETFL, O_NONBLOCK));
+
+    ASSERT(connect(client, listenerAddrPtr, sizeof(listenerAddr)) == -1); ASSERT(errno == EINPROGRESS);
+
+    io_uring serverRing;
+    TRY(io_uring_queue_init(64, &serverRing, 0));
+    io_uring_cqe* cqe;
+
+    //int server = accept4(listener, NULL, NULL, SOCK_NONBLOCK); ASSERT(server != -1);
+
+    io_uring_sqe* acceptSqe = io_uring_get_sqe(&serverRing);
+    io_uring_prep_accept(acceptSqe, listener, NULL, NULL, SOCK_NONBLOCK);
+    acceptSqe->user_data = 666;
+
+    TRY(io_uring_submit(&serverRing));
+
+    TRY(io_uring_wait_cqe(&serverRing, &cqe));
+    ASSERT(cqe->user_data == 666);
+    int server = cqe->res; ASSERT(server > 0);
+    io_uring_cqe_seen(&serverRing, cqe);
+
+    char sndBuf[4];
+    ASSERT(send(client, sndBuf, 4, 0) == 4); ASSERT(errno == EINPROGRESS);
+
+    io_uring_sqe* pollSqe = io_uring_get_sqe(&serverRing);
+    io_uring_prep_poll_add(pollSqe, server, POLLIN);
+    pollSqe->flags |= IOSQE_IO_LINK;
+    pollSqe->user_data = 1;
+
+    
+    char recvBuf[512];
+    iovec recvIovec{
+        .iov_base = recvBuf,
+        .iov_len = sizeof(recvBuf)
+    };
+
+    io_uring_sqe* readSqe = io_uring_get_sqe(&serverRing);
+    msghdr msg{
+        .msg_iov = &recvIovec,
+        .msg_iovlen = 1
+    };
+    io_uring_prep_recvmsg(readSqe, server, &msg, 0);
+    readSqe->user_data = 2;
+
+
+    TRY(io_uring_submit(&serverRing));
+    
+    TRY(io_uring_wait_cqe(&serverRing, &cqe));
+    std::cout << cqe->user_data << " " << cqe->res <<  std::endl;
+    ASSERT(cqe->user_data == 1 && cqe->res >= 0);
+    io_uring_cqe_seen(&serverRing, cqe);
+
+    TRY(io_uring_wait_cqe(&serverRing, &cqe));
+    //std::cout << cqe->user_data << " " << cqe->res << std::endl;
+    ASSERT(cqe->user_data == 2 && cqe->res == 4);
+    io_uring_cqe_seen(&serverRing, cqe);
+
+    TRY(close(client));
+    TRY(close(server));
+    TRY(close(listener));
     return 0;
 }
