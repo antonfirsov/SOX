@@ -4,6 +4,7 @@
 #include <sys/poll.h>
 #include <sys/eventfd.h>
 #include <string_view>
+#include <atomic>
 
 #include "BasicServer.hpp"
 
@@ -20,16 +21,21 @@ enum class Operation {
 struct CompletionInfo {
     int fd;
     Operation operation;
+
+    CompletionInfo() : fd(-1)
+    {
+    }
+};
+
+struct SendReceiveData {
     iovec iov;
     msghdr msg;
     char buffer[BasicServer::MAX_MESSAGE];
-    
     std::string collector;
 
-    CompletionInfo() :
-        fd(-1),
-        iov { .iov_base = buffer, .iov_len = BasicServer::MAX_MESSAGE },
-        msg {
+    SendReceiveData() :
+        iov{ .iov_base = buffer, .iov_len = BasicServer::MAX_MESSAGE },
+        msg{
             .msg_iov = &iov,
             .msg_iovlen = 1,
         },
@@ -42,24 +48,26 @@ class SubmissionInfo {
     const int _fd;
     io_uring_sqe* _sqe;
     CompletionInfo* _completion;
-    
+    SendReceiveData* _srData;
+
     void SetupCompletionData(Operation operation) {
         io_uring_sqe_set_data(_sqe, _completion);
         _completion->operation = operation;
     }
 
     msghdr* GetMsg() {
-        msghdr& msg = _completion->msg;
+        msghdr& msg = _srData->msg;
         msg.msg_name = nullptr;
         msg.msg_namelen = 0;
         return &msg;
     }
 
 public:  
-    SubmissionInfo(int fd, io_uring_sqe* sqe, CompletionInfo* completion) : 
+    SubmissionInfo(int fd, io_uring_sqe* sqe, CompletionInfo* completion, SendReceiveData* srData) : 
         _fd(fd),
         _sqe(sqe),
-        _completion(completion)
+        _completion(completion),
+        _srData(srData)
     {
     }
 
@@ -98,14 +106,15 @@ class UringServer : public BasicServer
 {
 public:
     static const int RING_ENTRIES = 512;
-    static const int INFO_TABLE_SIZE = RING_ENTRIES + 8;
 
 private:
     io_uring_params _ringParams;
 	io_uring _ring;
     int _abortEvt;
 
-    CompletionInfo _completionData[INFO_TABLE_SIZE];
+    std::atomic<size_t> _completionDataCounter;
+    CompletionInfo _completionData[RING_ENTRIES];
+    SendReceiveData _sendReceiveData[RING_ENTRIES + 8];
 
     static CompletionInfo* GetCompletionInfo(io_uring_cqe* cqe) {
         void* data = io_uring_cqe_get_data(cqe);
@@ -117,9 +126,12 @@ private:
 
     SubmissionInfo CreateSubmission(int fd) {
         io_uring_sqe* sqe = io_uring_get_sqe(&_ring);
-        CompletionInfo* c = &_completionData[fd];
+        size_t idx = _completionDataCounter++ % RING_ENTRIES;
+
+        CompletionInfo* c = &_completionData[idx];
+        SendReceiveData* srData = &_sendReceiveData[fd];
         c->fd = fd;
-        return SubmissionInfo(fd, sqe, c);
+        return SubmissionInfo(fd, sqe, c, srData);
     }
 
     void SubmitLinkedPollRead(int socket) {
@@ -159,22 +171,24 @@ private:
             }
             case Operation::RECEIVE: {
                 if (result >= 0) {
-                    std::string_view s(c->buffer, result);
-                    c->collector += s;
+                    SendReceiveData* sr = &_sendReceiveData[c->fd];
+
+                    std::string_view s(sr->buffer, result);
+                    sr->collector += s;
                     
                     if (s == "exit.") {
                         std::cout << "received exit signal, terminating " << std::endl;
                         return false;
                     }
                     else if (s[s.length() - 1] == '.') {
-                        std::string& s = c->collector;
+                        std::string& s = sr->collector;
                         s.resize(s.length() - 1);
 
                         std::cout << "RECEIVED: " << s << std::endl;
                         
                         s += "!!!";
-                        s.copy(c->buffer, s.length());
-                        c->iov.iov_len = s.length();
+                        s.copy(sr->buffer, s.length());
+                        sr->iov.iov_len = s.length();
 
                         CreateSubmission(c->fd).PrepareSend();
                         s.clear();
@@ -208,6 +222,7 @@ public:
         BasicServer(addressFamily, ipAddressStr, port, ipv6ScopeId), 
         _ringParams(), 
         _ring(), 
+        _completionDataCounter(0),
         _completionData()
     {
     }

@@ -10,7 +10,7 @@ namespace Client
     {
         private byte[] _buffer = new byte[1024];
         private StringBuilder _bld = new StringBuilder();
-        private const int ServerPort = 11002;
+        private const int ServerPort = 11011;
 
         private static IPAddress GetOwnIP()
         {
