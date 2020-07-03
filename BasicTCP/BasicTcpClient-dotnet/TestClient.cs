@@ -12,26 +12,17 @@ namespace Client
         private StringBuilder _bld = new StringBuilder();
         private const int ServerPort = 11011;
 
-        private static IPAddress GetOwnIP()
-        {
-            string hostName = Dns.GetHostName();
-            IPHostEntry ipHostInfo = Dns.GetHostEntry(hostName);
-            IPAddress[] addresses = ipHostInfo.AddressList.Where(a => a.AddressFamily == AddressFamily.InterNetwork).ToArray();
-            return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("172"));
-        }
 
         private static IPAddress GetRemoteIP() => IPAddress.Parse("172.17.99.105");
 
         //private static IPAddress GetRemoteIP() => IPAddress.Parse("fe80::ec50:fb40:898f:3795");
 
-        public void Run()
+        
+        public void Run(IPEndPoint remoteEndpoint)
         {
             Console.WriteLine("********* CLIENT *********");
-
-            IPAddress ipAddress = GetRemoteIP(); /* GetOwnIP();*/
-            IPEndPoint remoteEndpoint = new IPEndPoint(ipAddress, ServerPort);
-
-            using Socket sender = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+;
+            using Socket sender = new Socket(remoteEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             Console.WriteLine("Press ENTER to connect ...");
             Console.ReadLine();

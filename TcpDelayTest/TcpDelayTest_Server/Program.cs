@@ -2,31 +2,33 @@
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace Client
+namespace TcpDelayTest_Server
 {
     class Program
     {
-        static void Main(string[] args)
+        
+        static async Task Main(string[] args)
         {
-            System.Reflection.Assembly assembly = typeof(int).Assembly;
-            Console.WriteLine(assembly.ImageRuntimeVersion);
-            Console.WriteLine(assembly.FullName);
+            using Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-            IPEndPoint endPoint = GetIpEndpoint(args.Length > 0 ? args[0] : null);
-
-            try
-            {
-                using TestClient client = new TestClient();
-                client.Run(endPoint);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
+            IPEndPoint endpoint = GetIpEndpoint(args.Length > 0 ? args[0] : null);
             
+            listener.Bind(endpoint);
+            listener.Listen(10);
+            Console.WriteLine($"Listening on {endpoint} ...");
+            using Socket handler = await listener.AcceptAsync();
+            Console.WriteLine("Connected.");
 
-            Console.ReadLine();
+            byte[] buffer = new byte[2048];
+            while (true)
+            {
+                int received = await handler.ReceiveAsync(buffer, SocketFlags.None);
+                string str = Encoding.ASCII.GetString(buffer, 0, received);
+                Console.WriteLine(str);
+            }
         }
         
         private static IPEndPoint GetIpEndpoint(string endpointStr)
@@ -49,7 +51,6 @@ namespace Client
             
             return new IPEndPoint(ipAddress, port);
         }
-        
         
         private static IPAddress GetOwInP()
         {

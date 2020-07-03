@@ -12,28 +12,13 @@ namespace Server
         private byte[] _buffer = new byte[1024];
         private StringBuilder _bld = new StringBuilder();
 
-        private const int ServerPort = 11000;
-
-        private static IPAddress GetOwnIP()
-        {
-            string hostName = Dns.GetHostName();
-            IPHostEntry ipHostInfo = Dns.GetHostEntry(hostName);
-            IPAddress[] addresses = ipHostInfo.AddressList.Where(a => a.AddressFamily == AddressFamily.InterNetwork).ToArray();
-            return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("172"));
-        }
-
-        public async Task RunAsync()
+        public async Task RunAsync(IPEndPoint serverEndPoint)
         {
             Console.WriteLine("********* SERVER *********");
-
-            IPAddress ipAddress = GetOwnIP();
-
-            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, ServerPort);
-
-            using Socket listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            listener.Bind(localEndPoint);
+            using Socket listener = new Socket(serverEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(serverEndPoint);
             listener.Listen(10);
-            Console.WriteLine($"Server is listening on {localEndPoint}.");
+            Console.WriteLine($"Server is listening on {serverEndPoint}.");
             
             ArraySegment<byte> bufferSegment = new ArraySegment<byte>(_buffer);
 

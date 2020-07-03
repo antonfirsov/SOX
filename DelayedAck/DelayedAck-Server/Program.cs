@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DelayedAck_Server
 {
     class Program
     {
-        public const int N = 100000;
-        
         static async Task Main(string[] args)
         {
             if (args.Length < 1)
@@ -16,6 +15,11 @@ namespace DelayedAck_Server
                 Console.WriteLine("Address please!");
                 return;
             }
+            
+            ThreadPool.GetMaxThreads(out int workerThreads, out int completionPortThreads);
+            Console.WriteLine($"MAX: workerThreads={workerThreads}, completionPortThreads={completionPortThreads}");
+            ThreadPool.GetAvailableThreads(out workerThreads, out completionPortThreads);
+            Console.WriteLine($"AVAILABLE: workerThreads={workerThreads}, completionPortThreads={completionPortThreads}");
             
             IPEndPoint serverEndPoint = IPEndPoint.Parse(args[0]);
             

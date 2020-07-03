@@ -8,7 +8,7 @@ namespace DelayedAck_Client
 {
     internal class Program
     {
-        private const int N = 100000;
+        private const int N = 1000000;
         
         public static async Task Main(string[] args)
         {
@@ -29,6 +29,7 @@ namespace DelayedAck_Client
             await client.ReceiveAsync(buffer, SocketFlags.None);
 
 
+            Console.WriteLine("Testing ....");
             Stopwatch stopwatch = Stopwatch.StartNew();
             for (int i = 0; i < N; i++)
             {
@@ -39,7 +40,7 @@ namespace DelayedAck_Client
             stopwatch.Stop();
 
             TimeSpan averageDelay = stopwatch.Elapsed / (2 * N);
-            Console.WriteLine(averageDelay);
+            Console.WriteLine("Delay: " + averageDelay);
         }
     }
 }
