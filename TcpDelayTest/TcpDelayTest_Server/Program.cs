@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -26,6 +27,8 @@ namespace TcpDelayTest_Server
                     Console.WriteLine($"Listening on {endpoint} ...");
                     using Socket handler = await listener.AcceptAsync();
                     Console.WriteLine("Connected.");
+                    DisableDelayedAck(handler);
+                    
 
                     byte[] buffer = new byte[2048];
                     while (true)
@@ -40,6 +43,15 @@ namespace TcpDelayTest_Server
                     Console.WriteLine(ex.Message);
                 }
             }
+        }
+        
+        private const int SIO_TCP_SET_ACK_FREQUENCY = unchecked((int)0x98000017);
+
+        private static void DisableDelayedAck(Socket socket)
+        {
+            byte[] dummy = new byte[128];
+            socket.IOControl(SIO_TCP_SET_ACK_FREQUENCY, BitConverter.GetBytes(1), dummy);
+            Console.WriteLine("Delayed ack disabled maybe.");
         }
 
         private static string GetMessageString(byte[] buffer, int length)
@@ -81,5 +93,33 @@ namespace TcpDelayTest_Server
             IPAddress[] addresses = ipHostInfo.AddressList.Where(a => a.AddressFamily == AddressFamily.InterNetwork).ToArray();
             return ipHostInfo.AddressList.First(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().Contains("192"));
         }
+    }
+    
+    internal static partial class Winsock
+    {
+        // Used with SIOGETEXTENSIONFUNCTIONPOINTER - we're assuming that will never block.
+        [DllImport("Ws2_32.dll", SetLastError = true)]
+        internal static extern SocketError WSAIoctl(
+            SafeSocketHandle socketHandle,
+            [In] int ioControlCode,
+            [In, Out] ref Guid guid,
+            [In] int guidSize,
+            [Out] out IntPtr funcPtr,
+            [In]  int funcPtrSize,
+            [Out] out int bytesTransferred,
+            [In] IntPtr shouldBeNull,
+            [In] IntPtr shouldBeNull2);
+
+        [DllImport("Ws2_32.dll", SetLastError = true, EntryPoint = "WSAIoctl")]
+        internal static extern SocketError WSAIoctl_Blocking(
+            SafeSocketHandle socketHandle,
+            [In] int ioControlCode,
+            [In] byte[] inBuffer,
+            [In] int inBufferSize,
+            [Out] byte[] outBuffer,
+            [In] int outBufferSize,
+            [Out] out int bytesTransferred,
+            [In] IntPtr overlapped,
+            [In] IntPtr completionRoutine);
     }
 }

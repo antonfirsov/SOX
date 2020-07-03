@@ -15,12 +15,13 @@ namespace TcpDelayTest_Client
             
             using Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             client.NoDelay = true;
+            client.SendBufferSize = 0;
 
             Console.WriteLine("Connecting ...");
             await client.ConnectAsync(ep);
             Console.WriteLine("Connected.");
 
-            const int delayMs = 10;
+            const int delayMs = 50;
             byte[] buffer = new byte[8];
             Stopwatch sw = new Stopwatch();
             while (true)
@@ -36,9 +37,11 @@ namespace TcpDelayTest_Client
                     await Task.Delay(delayMs);
                 }
                 sw.Stop();
-                Console.WriteLine($"T={sw.ElapsedMilliseconds}ms");
+                Console.WriteLine($"T={sw.ElapsedMilliseconds}ms [expected ~{delayMs * burstLength}ms]");
             }
         }
+        
+        
 
         private static void FillPayload(byte[] buffer, int i)
         {
