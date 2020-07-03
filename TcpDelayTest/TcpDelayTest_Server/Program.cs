@@ -18,16 +18,27 @@ namespace TcpDelayTest_Server
             
             listener.Bind(endpoint);
             listener.Listen(10);
-            Console.WriteLine($"Listening on {endpoint} ...");
-            using Socket handler = await listener.AcceptAsync();
-            Console.WriteLine("Connected.");
 
-            byte[] buffer = new byte[2048];
             while (true)
             {
-                int received = await handler.ReceiveAsync(buffer, SocketFlags.None);
-                string str = GetMessageString(buffer, received);
-                Console.WriteLine(str);
+                try
+                {
+                    Console.WriteLine($"Listening on {endpoint} ...");
+                    using Socket handler = await listener.AcceptAsync();
+                    Console.WriteLine("Connected.");
+
+                    byte[] buffer = new byte[2048];
+                    while (true)
+                    {
+                        int received = await handler.ReceiveAsync(buffer, SocketFlags.None);
+                        string str = GetMessageString(buffer, received);
+                        Console.WriteLine(str);
+                    }
+                }
+                catch (SocketException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -13,16 +14,20 @@ namespace TcpDelayTest_Client
             IPEndPoint ep = GetIpEndpoint(args[0]);
             
             using Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            client.NoDelay = true;
+
             Console.WriteLine("Connecting ...");
             await client.ConnectAsync(ep);
             Console.WriteLine("Connected.");
 
             const int delayMs = 10;
             byte[] buffer = new byte[8];
+            Stopwatch sw = new Stopwatch();
             while (true)
             {
                 int burstLength = int.Parse(Console.ReadLine() ?? "10");
 
+                sw.Restart();
                 for (int i = 0; i < burstLength; i++)
                 {
                     FillPayload(buffer, i);
@@ -30,6 +35,8 @@ namespace TcpDelayTest_Client
                     if (sent == 0) throw new Exception("wtf");
                     await Task.Delay(delayMs);
                 }
+                sw.Stop();
+                Console.WriteLine($"T={sw.ElapsedMilliseconds}ms");
             }
         }
 
