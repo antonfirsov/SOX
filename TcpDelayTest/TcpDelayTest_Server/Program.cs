@@ -27,12 +27,14 @@ namespace TcpDelayTest_Server
                     Console.WriteLine($"Listening on {endpoint} ...");
                     using Socket handler = await listener.AcceptAsync();
                     Console.WriteLine("Connected.");
-                    DisableDelayedAck(handler);
+                    //DisableDelayedAck(handler);
                     
 
                     byte[] buffer = new byte[2048];
                     while (true)
                     {
+                        //DisableDelayedAck12(handler);
+
                         int received = await handler.ReceiveAsync(buffer, SocketFlags.None);
                         string str = GetMessageString(buffer, received);
                         Console.WriteLine(str);
@@ -52,6 +54,16 @@ namespace TcpDelayTest_Server
             byte[] dummy = new byte[128];
             socket.IOControl(SIO_TCP_SET_ACK_FREQUENCY, BitConverter.GetBytes(1), dummy);
             Console.WriteLine("Delayed ack disabled maybe.");
+        }
+
+        private static void DisableDelayedAck12(Socket socket)
+        {
+            socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)12, true);
+        }
+        
+        private static void DisableDelayedAck13(Socket socket)
+        {
+            socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)13, true);
         }
 
         private static string GetMessageString(byte[] buffer, int length)
