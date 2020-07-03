@@ -13,21 +13,31 @@ namespace TcpDelayTest_Client
             IPEndPoint ep = GetIpEndpoint(args[0]);
             
             using Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            Console.WriteLine("Connecting ...");
             await client.ConnectAsync(ep);
+            Console.WriteLine("Connected.");
 
             const int delayMs = 10;
-            byte[] buffer = new byte[1];
+            byte[] buffer = new byte[8];
             while (true)
             {
                 int burstLength = int.Parse(Console.ReadLine() ?? "10");
 
                 for (int i = 0; i < burstLength; i++)
                 {
-                    buffer[0] = (byte) ('0' + (i % 10));
+                    FillPayload(buffer, i);
                     int sent = await client.SendAsync(buffer, SocketFlags.None);
                     if (sent == 0) throw new Exception("wtf");
                     await Task.Delay(delayMs);
                 }
+            }
+        }
+
+        private static void FillPayload(byte[] buffer, int i)
+        {
+            for (int j = 0; j < buffer.Length; j+=2)
+            {
+                buffer[j] = (byte) i;
             }
         }
         

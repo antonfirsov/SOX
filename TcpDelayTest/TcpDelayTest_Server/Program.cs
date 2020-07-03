@@ -26,9 +26,20 @@ namespace TcpDelayTest_Server
             while (true)
             {
                 int received = await handler.ReceiveAsync(buffer, SocketFlags.None);
-                string str = Encoding.ASCII.GetString(buffer, 0, received);
+                string str = GetMessageString(buffer, received);
                 Console.WriteLine(str);
             }
+        }
+
+        private static string GetMessageString(byte[] buffer, int length)
+        {
+            return string.Create(buffer.Length, buffer, (c, b) =>
+            {
+                for (int i = 0; i < length; i++)
+                {
+                    c[i] = (char) ('0' + b[i]);
+                }
+            });
         }
         
         private static IPEndPoint GetIpEndpoint(string endpointStr)
