@@ -55,12 +55,19 @@ namespace TcpDelayTest_Server
         {
             socket.IOControl(SIO_TCP_SET_ACK_FREQUENCY, BitConverter.GetBytes(1), Dummy);
         }
+        
 
         private static void DisableDelayedAck12(Socket socket)
         {
             try
             {
-                socket.SetRawSocketOption((int) SocketOptionLevel.Tcp, 12, BitConverter.GetBytes(1));
+                byte[] data = new byte[4];
+                data[0] = 1;
+                socket.SetRawSocketOption((int) SocketOptionLevel.Tcp, 12, data);
+                Console.WriteLine("SetRawSocketOption succeeded!");
+                data.AsSpan().Clear();
+                socket.GetRawSocketOption((int) SocketOptionLevel.Tcp, 12, data);
+                Console.WriteLine("GetRawSocketOption: " + BitConverter.ToInt32(data));
             }
             catch (Exception ex)
             {
