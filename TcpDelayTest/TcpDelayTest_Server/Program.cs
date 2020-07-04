@@ -33,7 +33,7 @@ namespace TcpDelayTest_Server
                     byte[] buffer = new byte[2048];
                     while (true)
                     {
-                        //DisableDelayedAck12(handler);
+                        DisableDelayedAck12(handler);
 
                         int received = await handler.ReceiveAsync(buffer, SocketFlags.None);
                         string str = GetMessageString(buffer, received);
@@ -43,22 +43,31 @@ namespace TcpDelayTest_Server
                 catch (SocketException ex)
                 {
                     Console.WriteLine(ex.Message);
+                    Console.WriteLine(ex.StackTrace);
                 }
             }
         }
         
         private const int SIO_TCP_SET_ACK_FREQUENCY = unchecked((int)0x98000017);
+        private static readonly byte[] Dummy = new byte[128];
 
         private static void DisableDelayedAck(Socket socket)
         {
-            byte[] dummy = new byte[128];
-            socket.IOControl(SIO_TCP_SET_ACK_FREQUENCY, BitConverter.GetBytes(1), dummy);
-            Console.WriteLine("Delayed ack disabled maybe.");
+            socket.IOControl(SIO_TCP_SET_ACK_FREQUENCY, BitConverter.GetBytes(1), Dummy);
         }
 
         private static void DisableDelayedAck12(Socket socket)
         {
-            socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)12, true);
+            try
+            {
+                socket.SetRawSocketOption((int) SocketOptionLevel.Tcp, 12, BitConverter.GetBytes(1));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SetRawSocketOption failed: " + ex.Message);
+                Console.WriteLine(ex.StackTrace);
+            }
+            
         }
         
         private static void DisableDelayedAck13(Socket socket)
