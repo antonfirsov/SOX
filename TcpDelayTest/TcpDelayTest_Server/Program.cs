@@ -27,14 +27,12 @@ namespace TcpDelayTest_Server
                     Console.WriteLine($"Listening on {endpoint} ...");
                     using Socket handler = await listener.AcceptAsync();
                     Console.WriteLine("Connected.");
-                    //DisableDelayedAck(handler);
-                    
+                    DisableDelayedAck12(handler);
 
                     byte[] buffer = new byte[2048];
                     while (true)
                     {
-                        DisableDelayedAck12(handler);
-
+                        PrintDelayedAck12(handler);
                         int received = await handler.ReceiveAsync(buffer, SocketFlags.None);
                         string str = GetMessageString(buffer, received);
                         Console.WriteLine(str);
@@ -55,7 +53,6 @@ namespace TcpDelayTest_Server
         {
             socket.IOControl(SIO_TCP_SET_ACK_FREQUENCY, BitConverter.GetBytes(1), Dummy);
         }
-        
 
         private static void DisableDelayedAck12(Socket socket)
         {
@@ -65,16 +62,27 @@ namespace TcpDelayTest_Server
                 data[0] = 1;
                 socket.SetRawSocketOption((int) SocketOptionLevel.Tcp, 12, data);
                 Console.WriteLine("SetRawSocketOption succeeded!");
-                data.AsSpan().Clear();
-                socket.GetRawSocketOption((int) SocketOptionLevel.Tcp, 12, data);
-                Console.WriteLine("GetRawSocketOption: " + BitConverter.ToInt32(data));
             }
             catch (Exception ex)
             {
                 Console.WriteLine("SetRawSocketOption failed: " + ex.Message);
                 Console.WriteLine(ex.StackTrace);
             }
-            
+        }
+
+        private static void PrintDelayedAck12(Socket socket)
+        {
+            try
+            {
+                byte[] data = new byte[4];
+                socket.GetRawSocketOption((int) SocketOptionLevel.Tcp, 12, data);
+                Console.WriteLine("GetRawSocketOption: " + BitConverter.ToInt32(data));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetRawSocketOption failed: " + ex.Message);
+                Console.WriteLine(ex.StackTrace);
+            }
         }
         
         private static void DisableDelayedAck13(Socket socket)
