@@ -60,7 +60,7 @@ namespace TcpDelayTest_Server
             {
                 byte[] data = new byte[4];
                 data[0] = 1;
-                socket.SetRawSocketOption((int) SocketOptionLevel.Tcp, 12, data);
+                socket.SetRawSocketOption((int) SocketOptionLevel.Tcp, 12, BitConverter.GetBytes(1));
                 Console.WriteLine("SetRawSocketOption succeeded!");
             }
             catch (Exception ex)

@@ -14,7 +14,7 @@ namespace TcpDelayTest_Client
             IPEndPoint ep = GetIpEndpoint(args[0]);
             
             using Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            client.NoDelay = true;
+            //client.NoDelay = true;
             client.SendBufferSize = 0;
 
             Console.WriteLine("Connecting ...");
