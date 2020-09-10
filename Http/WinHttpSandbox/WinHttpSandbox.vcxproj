@@ -141,6 +141,9 @@
   <ItemGroup>
     <ClCompile Include="WinHttpSandbox.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Common.hpp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
