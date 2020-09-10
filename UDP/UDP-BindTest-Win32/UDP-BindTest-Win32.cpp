@@ -91,6 +91,26 @@ union SocketAddress {
     struct sockaddr_storage ss;
 };
 
+std::string GetEndpointString(const SocketAddress& a, ADDRESS_FAMILY af) {
+    char addrStr[INET6_ADDRSTRLEN];
+
+    int port;
+    if (af == AF_INET) {
+        inet_ntop(AF_INET, &(a.a4.sin_addr), addrStr, INET_ADDRSTRLEN);
+        port = a.a4.sin_port;
+    }
+    else {
+        inet_ntop(AF_INET6, &(a.a6.sin6_addr), addrStr, INET6_ADDRSTRLEN);
+        port = a.a6.sin6_port;
+    }
+
+
+    std::stringstream ss;
+    ss << addrStr << '/' << port;
+
+    return ss.str();
+}
+
 
 struct SocketInfo {
     SocketAddress CreationAddress;
@@ -98,6 +118,7 @@ struct SocketInfo {
 
     int SockType;
     int Protocol;
+    bool IsDualMode;
     
     SOCKET Socket;
 
@@ -118,7 +139,7 @@ struct SocketInfo {
         }
     }
 
-    static SocketInfo Create(int sockType, const std::string& epStr = "0.0.0.0:0") {
+    static SocketInfo Create(int sockType, bool dual, const std::string& epStr = "0.0.0.0:0") {
         size_t commaIdx = epStr.rfind('/');
         std::string addrStr = epStr.substr(0, commaIdx);
         std::string portStr = epStr.substr(commaIdx + 1);
@@ -143,6 +164,7 @@ struct SocketInfo {
         SocketInfo result;
         result.SockType = sockType;
         result.Protocol = sockType == SOCK_STREAM ? IPPROTO_TCP : IPPROTO_UDP;
+        result.IsDualMode = dual;
 
         // We use the first returned entry
         memcpy(&result.CreationAddress.ss, res->ai_addr, res->ai_addrlen);
@@ -155,12 +177,21 @@ struct SocketInfo {
     }
 
     static SocketInfo Create(const ProgramArguments& args) {
-        return Create(args.SockType(), args.EndpointString);
+        return Create(args.SockType(), args.IsDualMode, args.EndpointString);
     }
 
     void CreateSocket() {
         ADDRESS_FAMILY family = Family();
         Socket = socket(family, SockType, Protocol);
+
+        if (IsDualMode) {
+            if (family == AF_INET) {
+                throw std::runtime_error("IsDualMode can't be used with IPV4!");
+            }
+            int disable = 0;
+            TRY(setsockopt(Socket, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&disable, sizeof(disable)));
+        }
+
         std::cout << "Socket created!" << std::endl;
     }
 
@@ -180,19 +211,17 @@ struct SocketInfo {
     }
 
     std::string GetIPString() {
-        char addrStr[INET6_ADDRSTRLEN];
+        return GetEndpointString(LocalEndpoint, Family());
+    }
 
-        if (Family() == AF_INET) {
-            inet_ntop(AF_INET, &(LocalEndpoint.a4.sin_addr), addrStr, INET_ADDRSTRLEN);
-        }
-        else {
-            inet_ntop(AF_INET6, &(LocalEndpoint.a6.sin6_addr), addrStr, INET6_ADDRSTRLEN);
-        }
-        
-        std::stringstream ss;
-        ss << addrStr << '/' << Port();
+    void RecvFrom() {
+        std::cout << "Receiving ..." << std::endl;
 
-        return ss.str();
+        char buf[128];
+        SOCKADDR_IN senderAddress;
+        int len = sizeof(senderAddress);
+        int received = TRY(recvfrom(Socket, buf, 128, 0, (SOCKADDR*)&senderAddress, &len));
+        std::cout << "Received " << received << " bytes" << std::endl;
     }
 
 private:
@@ -218,12 +247,42 @@ int main(int ac, const char** av)
 {
     InitWinsock();
 
-    ProgramArguments args(ac, av);
-
+    //ProgramArguments args(ac, av);
+    
     try {
-        SocketInfo sock = SocketInfo::Create(args);
-        sock.CreateSocket();
-        sock.Bind();
+
+        ProgramArguments args1 = {};
+        args1.EndpointString = "0.0.0.0/0";
+        args1.IsUdp = true;
+
+        SocketInfo sock1 = SocketInfo::Create(args1);
+        sock1.CreateSocket();
+        sock1.Bind();
+
+        std::stringstream ss;
+        //ss << "::ffff:127.0.0.1/" << sock1.Port();
+        ss << "::ffff:0.0.0.0/" << sock1.Port();
+        //ss << "::/" << sock1.Port();
+        //ss << "0.0.0.0/" << sock1.Port();
+
+        ProgramArguments args2 = {};
+        args2.EndpointString = ss.str();
+        args2.IsUdp = true;
+        args2.IsDualMode = true;
+
+        SocketInfo sock2 = SocketInfo::Create(args2);
+        sock2.CreateSocket();
+
+        int exclusiveAddressReuseVal;
+        int optSize = sizeof(exclusiveAddressReuseVal);
+        getsockopt(sock2.Socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&exclusiveAddressReuseVal, &optSize);
+
+        int reuseAddrValue;
+        getsockopt(sock2.Socket, SOL_SOCKET, SO_REUSEADDR, (char*)&reuseAddrValue, &optSize);
+        std::cout << "SO_EXCLUSIVEADDRUSE=" << exclusiveAddressReuseVal << " SO_REUSEADDR=" << reuseAddrValue << std::endl;
+
+        sock2.Bind();
+        //sock1.RecvFrom();
     }
     catch (const std::exception& ex) {
         std::cout << ex.what() << std::endl;

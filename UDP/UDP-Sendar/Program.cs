@@ -8,7 +8,39 @@ namespace UDP_Sendar
     {
         static void Main(string[] args)
         {
-            using Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            DualModeRepro();
+            // DoSendarStuff(args);
+        }
+
+        private static void DualModeRepro()
+        {
+            Console.WriteLine("UDP Duplicate Bind Test");
+
+            var socketAny = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            
+            Console.WriteLine($"ExclusiveAddressUse: {socketAny.ExclusiveAddressUse} ReuseAddress:{socketAny.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress)}");
+
+            socketAny.Bind(new IPEndPoint(IPAddress.Any, 0));
+            IPEndPoint anyEP = socketAny.LocalEndPoint as IPEndPoint;
+
+            Console.WriteLine($"Socket successfully bound on {anyEP}");
+
+            var socketIP6Any = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+
+            Console.WriteLine($"ExclusiveAddressUse: {socketIP6Any.ExclusiveAddressUse} ReuseAddress:{socketIP6Any.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress)}");
+
+            socketIP6Any.DualMode = true;
+            socketIP6Any.Bind(new IPEndPoint(IPAddress.IPv6Any, anyEP.Port));
+            IPEndPoint ip6AnyEP = socketIP6Any.LocalEndPoint as IPEndPoint;
+
+            Console.WriteLine($"Socket successfully bound on {ip6AnyEP}, is dual mode {socketIP6Any.DualMode}");
+
+            Console.ReadLine();
+        }
+
+        private static void DoSendarStuff(string[] args)
+        {
+            Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             IPEndPoint localEP = new IPEndPoint(IPAddress.Any, 0);
             if (args.Length > 0)
             {
