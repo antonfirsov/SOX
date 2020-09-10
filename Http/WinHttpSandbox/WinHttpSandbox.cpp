@@ -10,6 +10,24 @@
 
 #pragma comment (lib, "winhttp.lib")
 
+void ConfigureSession(HINTERNET hSession) {
+    DWORD dwHttp2Option = WINHTTP_PROTOCOL_FLAG_HTTP2;
+    TRYNZ(
+        WinHttpSetOption(hSession, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, &dwHttp2Option, sizeof(dwHttp2Option))
+    );
+
+}
+
+void ConfigureRequest(HINTERNET hRequest) {
+    DWORD dwAutoLogonHigh = WINHTTP_AUTOLOGON_SECURITY_LEVEL_HIGH;
+    TRYNZ(
+        WinHttpSetOption(hRequest,
+            WINHTTP_OPTION_AUTOLOGON_POLICY,
+            &dwAutoLogonHigh,
+            sizeof(dwAutoLogonHigh))
+    );
+}
+
 int main()
 {
     DWORD dwSize = 0;
@@ -25,6 +43,8 @@ int main()
             WinHttpOpen(L"Test!", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0)
         );
 
+        ConfigureSession(hSession);
+
         hConnect = TRYNZ(
             WinHttpConnect(hSession, L"motherfuckingwebsite.com", INTERNET_DEFAULT_HTTPS_PORT, 0)
         );
@@ -32,6 +52,8 @@ int main()
         hRequest = TRYNZ(
             WinHttpOpenRequest(hConnect, L"GET", NULL, NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE)
         );
+
+        ConfigureRequest(hRequest);
 
         TRYNZ(
             WinHttpSendRequest(hRequest,
@@ -75,14 +97,3 @@ int main()
 
     std::cout << "LOLOLOLOLOLOL" << std::endl;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
