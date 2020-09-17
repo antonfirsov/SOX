@@ -34,17 +34,16 @@ void ConfigureSession(HINTERNET hSession) {
     
     //Print(ka);
 
-    /*tcp_keepalive ka = {};
+    tcp_keepalive ka = {};
     ka.onoff = 1;
-    ka.keepaliveinterval = 12345;
-    ka.keepalivetime = 12345;
+    ka.keepaliveinterval = 2000;
+    ka.keepalivetime = 2000;
 
     TRYNZ(
         WinHttpSetOption(hSession, WINHTTP_OPTION_TCP_KEEPALIVE, &ka, sizeof(ka))
     );
-
-    Print(ka);*/
 }
+
 
 ULONG64 QueryConnectionTime(HINTERNET hRequest) {
     TCP_INFO_v1 tcpInfo = {};
@@ -93,7 +92,7 @@ std::string SendRequest(HINTERNET hSession) {
 
     try {
         hConnect = TRYNZ(
-            WinHttpConnect(hSession, L"motherfuckingwebsite.com", INTERNET_DEFAULT_HTTPS_PORT, 0)
+            WinHttpConnect(hSession, L"corefx-net-http2.azurewebsites.net", INTERNET_DEFAULT_HTTPS_PORT, 0)
         );
 
         hRequest = TRYNZ(
@@ -180,6 +179,8 @@ int main()
     catch (const OsError& error) {
         std::cout << error.what() << std::endl;
     }
+
+    std::this_thread::sleep_for(std::chrono::seconds(30));
 
     if (hSession) WinHttpCloseHandle(hSession);
 
