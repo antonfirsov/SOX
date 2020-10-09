@@ -8,6 +8,7 @@
 #include <thread>
 
 #include <windows.h>
+#include <WinSock2.h>
 #include <winhttp.h>
 #include <mstcpip.h>
 #include <Wincrypt.h>
@@ -110,7 +111,7 @@ std::string SendRequest(HINTERNET hSession) {
                 WINHTTP_NO_REQUEST_DATA, 0,
                 0, 0)
         );
-
+        
         std::cout << "after send ";
         auto time = QueryConnectionTime(hRequest);
         if (time > 2000) {
