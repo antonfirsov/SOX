@@ -25,7 +25,7 @@ static void* connect_socket(void* arg)
     return NULL;
 }
 
-int main()
+void AbortConnectTest()
 {
     // create AF_INET6 socket
     int s = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
@@ -62,6 +62,93 @@ int main()
     assert(rv == 0);
 
     std::cout << "DONE." << std::endl;
+}
+
+static int client;
+static sockaddr_in6 address;
+
+void* AbortReceiveTest_Connect(void* arg)
+{
+    connect(client, (sockaddr*)&address, sizeof(address));
+    return NULL;
+}
+
+void* AbortReceiveTest_Receive(void* arg) {
+    char buffer[1];
+    recv(client, buffer, 1, 0);
+    return NULL;
+}
+
+void AbortReceiveTest()
+{
+    int listener = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+
+    address = { };
+    address.sin6_family = AF_INET6;
+    address.sin6_addr = in6addr_loopback;
+    address.sin6_port = htons(8887);
+
+    bind(listener, (sockaddr*)&address, sizeof(address));
+    listen(listener, 10);
+
+    client = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+
+    pthread_t connect_thread;
+    int rv = pthread_create(&connect_thread, NULL, AbortReceiveTest_Connect, NULL);
+    assert(rv == 0);
+
+    int server = accept(listener, NULL, NULL);
+
+    rv = pthread_join(connect_thread, NULL);
+    assert(rv == 0);
+
+
+    std::cout << "yeah." << std::endl;
+
+    pthread_t recv_thread;
+    rv = pthread_create(&recv_thread, NULL, AbortReceiveTest_Receive, NULL);
+    assert(rv == 0);
+
+    /*rv = shutdown(client, SHUT_RDWR);*/
+
+    sockaddr address = { };
+    address.sa_family = AF_UNSPEC;
+    rv = connect(client, &address, sizeof(address));
+
+    if (rv < 0)
+    {
+        std::cout << "connect(AF_UNSPEC) failed! rv: " << rv << " errno: " << errno << std::endl;
+        std::cout << "trying shutdown .." << std::endl;
+
+        rv = shutdown(client, SHUT_RDWR);
+
+        if (rv < 0)
+        {
+            std::cout << "shutdown failed! rv: " << rv << " errno: " << errno << std::endl;
+            return;
+        }
+        else 
+        {
+            std::cout << "shutdown succeeded!" << std::endl;
+        }
+    }
+    else {
+        std::cout << "connect(AF_UNSPEC) succeeded!" << std::endl;
+    }
+
+    rv = pthread_join(connect_thread, NULL);
+    assert(rv == 0);
+    std::cout << "YEAH????" << std::endl;
+
+    char buffer[1];
+    rv = recv(server, buffer, 1, 0);
+
+    std::cout << "recv on server returned: " << rv << std::endl;
+}
+
+int main()
+{
+    AbortReceiveTest();
 
     return 0;
 }
