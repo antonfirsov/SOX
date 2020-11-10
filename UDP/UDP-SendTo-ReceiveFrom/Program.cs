@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace UDP_SendTo_ReceiveFrom
@@ -10,6 +11,8 @@ namespace UDP_SendTo_ReceiveFrom
     {
         public static async Task Main(string[] args)
         {
+            SynchronizationContext.SetSynchronizationContext(new AsyncTestSyncContext(SynchronizationContext.Current));
+
             await SendToReceiveFromUnixStressRepro.Run();
 
             await Task.CompletedTask;
