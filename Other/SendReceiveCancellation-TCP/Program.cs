@@ -1,47 +1,54 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SendReceiveCancellation_TCP
 {
     class Program
     {
-        static Task Main(string[] args)
+        static async Task Main(string[] args)
         {
-            return Tcp();
+            await DisposeDuringPendingReceiveAsync(true);
+            await DisposeDuringPendingReceiveAsync(false);
         }
 
-        private static async Task Tcp()
+        private static async Task DisposeDuringPendingReceiveAsync(bool disposeOrClose)
         {
-            using Socket listener = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            listener.SendBufferSize = 0;
-            IPEndPoint ep = new IPEndPoint(IPAddress.Loopback, 0);
-            listener.Bind(ep);
+            using Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            using Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
             listener.Listen(1);
-            ep = (IPEndPoint)listener.LocalEndPoint;
 
-            using Socket receiver = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            receiver.ReceiveBufferSize = 1000;
+            var connectTask = client.ConnectAsync(listener.LocalEndPoint);
 
-            var connectTask = receiver.ConnectAsync(ep);
-            var acceptTask = listener.AcceptAsync();
-
-            using Socket sender = await acceptTask;
+            using Socket server = listener.Accept();
             await connectTask;
 
-            sender.SendBufferSize = 0;          
+            void DoReceive()
+            {
+                try
+                {
+                    client.Receive(new byte[128]);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ABORTED! {ex.GetType().Name} : {ex.Message}");
+                }
+            }
 
-            byte[] sendData = new byte[3000];
-            byte[] receiveData = new byte[5000];
+            Console.WriteLine("Starting....");
+            Task receiveTask = Task.Run(DoReceive);
+            await Task.Delay(200);
+            if (disposeOrClose) client.Dispose();
+            else client.Close();
 
-            var sendTask = sender.SendAsync(sendData, SocketFlags.None);
-            var receiveTask = receiver.ReceiveAsync(receiveData, SocketFlags.None);
-
-            int received = await receiveTask;
-            Console.WriteLine($"Received: {received}");
-            int sent = await sendTask;
-            Console.WriteLine($"Sent: {sent}");
+            var timeoutTask = Task.Delay(5000);
+            if (Task.WhenAny(receiveTask, timeoutTask) == timeoutTask)
+            {
+                Console.WriteLine("TIMEOUT!!!");
+            }
         }
     }
 }
