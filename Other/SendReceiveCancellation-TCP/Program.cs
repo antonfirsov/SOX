@@ -13,10 +13,9 @@ namespace SendReceiveCancellation_TCP
             //await DisposeDuringPendingReceive_TCP(true);
             //await DisposeDuringPendingReceive_TCP(false);
             await DisposeDuringPendingReceiveFrom_UDP(true);
-            await DisposeDuringPendingReceiveFrom_UDP(false);
         }
 
-        private static async Task DisposeDuringPendingReceiveFrom_UDP(bool disposeOrClose)
+        private static async Task DisposeDuringPendingReceiveFrom_UDP(bool receiveMessageFrom)
         {
             using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.Bind(new IPEndPoint(IPAddress.Any, 0));
@@ -27,7 +26,15 @@ namespace SendReceiveCancellation_TCP
             {
                 try
                 {
-                    socket.ReceiveFrom(new byte[128], ref testEndpoint);
+                    if (receiveMessageFrom)
+                    {
+                        var flags = SocketFlags.None;
+                        socket.ReceiveMessageFrom(new byte[128], 0, 128, ref flags, ref testEndpoint, out _);
+                    }
+                    else
+                    {
+                        socket.ReceiveFrom(new byte[128], ref testEndpoint);
+                    }   
                 }
                 catch (Exception ex)
                 {
@@ -40,8 +47,7 @@ namespace SendReceiveCancellation_TCP
             await Task.Delay(200);
 
             Console.WriteLine("Disposing...");
-            if (disposeOrClose) socket.Dispose();
-            else socket.Close();
+            socket.Dispose();
 
             var timeoutTask = Task.Delay(5000);
             Console.WriteLine("Waiting for operation...");
