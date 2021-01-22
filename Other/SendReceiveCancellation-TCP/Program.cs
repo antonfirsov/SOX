@@ -35,6 +35,7 @@ namespace SendReceiveCancellation_TCP
                 }
             }
 
+            Console.WriteLine("Running...");
             Task receiveTask = Task.Run(DoReceiveFrom);
             await Task.Delay(200);
             if (disposeOrClose) socket.Dispose();
