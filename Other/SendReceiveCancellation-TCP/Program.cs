@@ -35,13 +35,16 @@ namespace SendReceiveCancellation_TCP
                 }
             }
 
-            Console.WriteLine("Running...");
+            Console.WriteLine("Starting operation...");
             Task receiveTask = Task.Run(DoReceiveFrom);
             await Task.Delay(200);
+
+            Console.WriteLine("Disposing...");
             if (disposeOrClose) socket.Dispose();
             else socket.Close();
 
             var timeoutTask = Task.Delay(5000);
+            Console.WriteLine("Waiting for operation...");
             if (Task.WhenAny(receiveTask, timeoutTask) == timeoutTask)
             {
                 Console.WriteLine("TIMEOUT!!!");
