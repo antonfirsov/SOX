@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29707.192
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35731.43 d17.13
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DuplicateSocket", "DuplicateSocket", "{437FBA88-D655-4112-B304-ADB93BA7BA62}"
 EndProject
@@ -70,6 +70,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinuxSocketsPlayground", "Other\LinuxSocketsPlayground\LinuxSocketsPlayground.vcxproj", "{EF6AB3F9-98F8-4E14-AE7E-6F52BC774D00}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SendReceiveCancellation-TCP", "Other\SendReceiveCancellation-TCP\SendReceiveCancellation-TCP.csproj", "{EEC71E7F-AA32-4F7C-A828-013A7E3B50A9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsSocketPlayground", "Other\WindowsSocketPlayground\WindowsSocketPlayground.vcxproj", "{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -559,6 +561,26 @@ Global
 		{EEC71E7F-AA32-4F7C-A828-013A7E3B50A9}.Release|x64.Build.0 = Release|Any CPU
 		{EEC71E7F-AA32-4F7C-A828-013A7E3B50A9}.Release|x86.ActiveCfg = Release|Any CPU
 		{EEC71E7F-AA32-4F7C-A828-013A7E3B50A9}.Release|x86.Build.0 = Release|Any CPU
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|Any CPU.Build.0 = Debug|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|ARM.ActiveCfg = Debug|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|ARM.Build.0 = Debug|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|ARM64.ActiveCfg = Debug|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|ARM64.Build.0 = Debug|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|x64.ActiveCfg = Debug|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|x64.Build.0 = Debug|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|x86.ActiveCfg = Debug|Win32
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Debug|x86.Build.0 = Debug|Win32
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|Any CPU.ActiveCfg = Release|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|Any CPU.Build.0 = Release|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|ARM.ActiveCfg = Release|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|ARM.Build.0 = Release|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|ARM64.ActiveCfg = Release|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|ARM64.Build.0 = Release|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|x64.ActiveCfg = Release|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|x64.Build.0 = Release|x64
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|x86.ActiveCfg = Release|Win32
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -589,6 +611,7 @@ Global
 		{110D4243-21DA-45C5-A339-CBB539396B0A} = {811D341C-FFA3-4BFD-8B26-BDB9A42E59CB}
 		{0A88CA7B-652F-4909-9279-A15C35E9F2DE} = {20493E4C-A7E7-4F55-A363-2A9D9B4D2855}
 		{EEC71E7F-AA32-4F7C-A828-013A7E3B50A9} = {B467C2BF-079C-4242-98CC-D814E4225ABD}
+		{A339A1F8-20A3-45F7-889F-4F3DBA2042AE} = {B467C2BF-079C-4242-98CC-D814E4225ABD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {92E1B14A-9834-4D16-A6E0-ADB9E50A1ED5}
